@@ -75,10 +75,6 @@ for u=1:length(folderlist)
 end
 end
 
-% how to import later in the comparison functions
-% latere = readtable('/Users/amrozeidan/Desktop/EasyGSH/com2305_ncdf/measurements_prepared/1996.wl.DB.meas.dat');
-% latere.Time = datetime (latere.Time , 'InputFormat' , 'dd-MM-yyyy HH:mm:ss' );
-% table2timetable(latere);
 
 
 

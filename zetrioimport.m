@@ -2,7 +2,7 @@
 
 function zetrioimport(common_folder)
 
-%commonfolder = '/Users/amrozeidan/Desktop/EasyGSH/com2305_zeitrio'
+%common_folder = '/Users/amrozeidan/Desktop/EasyGSH/com2305_zeitrio'
 
 folderlist = dir(strcat(common_folder , '/measurements'));
 
@@ -21,7 +21,7 @@ for u=1:length(folderlist)
                 st = fgetl(file_id_meas);
                 l = l + 1;
                 if  ~isempty(strfind(st,'# ------------------------------------------ '))
-                    fseek(file_id_meas , 0 , 'bof' ); % to reset the file pointer to the beginning or frewind(fid)
+                    fseek(file_id_meas , 0 , 'bof' );
                     break
                 end
             end
@@ -41,13 +41,16 @@ for u=1:length(folderlist)
             end
         end
         
+        %filling the missed values (-9999.00 or -777.0) with NaN
+        mainTtmeas = standardizeMissing(mainTtmeas , {-99999.0 , -777.0} , 'DataVariables' , mainTtmeas.Properties.VariableNames);
+        
         mkdir(common_folder, 'measurements_prepared')
         path_1 = strcat(common_folder, '/measurements_prepared')
         
         writetable(timetable2table(mainTtmeas) , char( strcat(path_1 , '/' , string(year(mainTtmeas.Time(10))) , '.wl.zeitrio' , '.dat') ))
         
     end
-    %later on, the other variables should be added 
+    %later on, the other variables should be added
 end
 end
 
