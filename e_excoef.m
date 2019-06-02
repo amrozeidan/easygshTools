@@ -15,7 +15,7 @@
 %extract the coeffitients of the simulations only, in case it does not
 %exist both coefficients for measurements and simulations are extracted.
 
-function e_excoef(common_folder, basefolder , main_path)
+function e_excoef(common_folder, basefolder , main_path, date_a, period, k, offset)
 addpath(main_path)
 
 %% checking if required_stations_data.dat file is available, if not run 'wlfileprep' function to generate it
@@ -34,7 +34,7 @@ end
 
 if isempty(indo)
     c_wlfileprep (common_folder , basefolder )
-    d_wlcomp( common_folder , basefolder , main_path)
+    d_wlcomp( common_folder , basefolder , main_path, date_a , period, k, offset)
 else
 end
 
@@ -116,8 +116,9 @@ end
 mkdir (path_4, 'coef_simulated')
 path_6 = strcat(path_4 , '/coef_simulated')
 
-for cwl=1:length(data_meas_file_name_with_directory_req)
+for cwl=1:length(data_wl_simulated_file_name_with_directory_req)
     %reading simulated data
+    data_wl_simulated_file_name_with_directory_req{cwl}
     file_id_sim = fopen(data_wl_simulated_file_name_with_directory_req{cwl} ,'r');
     sim_data = textscan(file_id_sim, '%{dd.MM.yyyy HH:mm:ss}D%n', 'Delimiter', ',', 'HeaderLines', 1);
     fclose(file_id_sim);

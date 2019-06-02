@@ -2,7 +2,7 @@
 
 
 %% g_salinitycomp
-function g_salinitycomp (common_folder , basefolder , date_a , period )
+function g_salinitycomp (common_folder , basefolder , date_a , period, offset )
 
 FileName_info = 'info_all_stations.dat';
 PathName_info = strcat(common_folder,'/');
@@ -150,8 +150,20 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 [row , col] = size(my_data_prep);
+header_meas = {};
+header_simul = {};
+TT_main_meas_for_comp = timetable(date_a,0);
+TT_main_simul_for_comp = timetable(date_a,0);
 
 for cwl=1:row
+    
+    %headers for dat files for salinity for all stations
+    %header for measured data,combining the station name with the depth
+    header_meas = horzcat (header_meas , [my_data_prep{cwl,1}{1},'_',num2str(my_data_prep{cwl,8})])
+    %header for simulated data containing station names only
+    header_simul = horzcat (header_simul , my_data_prep{cwl,1}{1})
+    
+    
     %reading measurements data
     file_id_meas = fopen(my_data_prep{cwl,2}{1} ,'r');
     my_data_prep{cwl,2}{1}
@@ -180,6 +192,7 @@ for cwl=1:row
     simul_data = textscan(file_id_simul, '%{dd/MM/yyyy HH:mm:ss}D%n', 'Delimiter', ',', 'HeaderLines', 1);
     fclose(file_id_simul);
     simul_dates = simul_data{1,1};
+    simul_dates = simul_dates + hours(offset);
     simul_salinity = simul_data{1,2};
 
     
@@ -230,13 +243,11 @@ for cwl=1:row
         my_data_2{d,1} = date_sync_no_NaN(d);
         my_data_2{d,2} = salinity_simul_sync_no_NaN(d);
     end
-    %saving 
-    %     T_1 = cell2table(my_data_1,'VariableNames',{'TimeStep', 'WaterLevel'});
-    %     saving_name = strcat(path_meas_up , '/', Locations_Names{cwl} , '.dat');
-    %     writetable(T_1,char(saving_name));
-    %     T_2 = cell2table(my_data_2,'VariableNames',{'TimeStep', 'WaterLevel'});
-    %     saving_name = strcat(path_simul_up , '/', Locations_Names{cwl} , '.dat');
-    %     writetable(T_2,char(saving_name));
+    %saving salinity for all stations in the same dat file; measured and
+    %simulated 
+    TT_main_meas_for_comp = synchronize(TT_main_meas_for_comp,TT_meas);
+    TT_main_simul_for_comp = synchronize(TT_main_simul_for_comp,TT_simul);
+
     
     %salinity difference
     salinity_diff = salinity_simul_sync_no_NaN - salinity_meas_sync_no_NaN ;
@@ -275,10 +286,55 @@ for cwl=1:row
 
     
     save_name = strcat(path_3, '/','Salinity comparison', '_Station_', my_data_prep{cwl,1}{1}, '_z' , num2str(depth));
-    savefig(h, save_name, 'compact');
+    % savefig(h, save_name, 'compact');
     saveas(gca, save_name , 'jpeg');
     clf
     close(h)
 
 end
+
+
+%% extracting measured and simulated salinity for all stations (for comparison)
+main_meas_for_comp_c = table2cell(timetable2table(TT_main_meas_for_comp ));
+main_meas_for_comp_c(:,2) = [];
+
+main_simul_for_comp_c = table2cell(timetable2table(TT_main_simul_for_comp));
+main_simul_for_comp_c(:,2) = [];
+
+header_meas = ['Date' , header_meas];
+header_simul = ['Date' , header_simul];
+
+main_meas_for_comp_c = vertcat(header_meas , main_meas_for_comp_c );
+main_simul_for_comp_c = vertcat(header_simul , main_simul_for_comp_c );
+
+%removing duplicates from simulated data main cell
+uni_station = unique(main_simul_for_comp_c(1,:)) ;
+for vu=1:length(uni_station)
+    index_extract = regexp( main_simul_for_comp_c(1,:), uni_station{vu});
+    isone = cellfun(@(x)isequal(x,1),index_extract);
+    index_extract = find(isone);
+    %keep the min index and remove the other columns, min index is in the
+    %first cell usually
+    index_extract(1) = [] ;
+    if ~isempty(index_extract)
+        main_simul_for_comp_c(:,min(index_extract):max(index_extract)) = [];
+    end
+end
+
+mkdir(basefolder, 'telemac_variables')
+path_1 = strcat(basefolder, '/telemac_variables')
+
+mkdir (path_1, 'variables_all_stations')
+path_6 = strcat(path_1, '/variables_all_stations')
+
+mkdir(strcat(common_folder, '/measurements') , 'variables_all_stations')
+path_5 = strcat(common_folder , '/measurements/variables_all_stations');
+
+T_5 = cell2table(main_meas_for_comp_c);
+saving_name = strcat(path_5, '/', 'salinity_all_stations_cropped' , '.dat');
+writetable(T_5,char(saving_name));
+
+T_6 = cell2table(main_simul_for_comp_c);
+saving_name = strcat(path_6 , '/', 'salinity_all_stations_cropped' , '.dat');
+writetable(T_6,char(saving_name));
 

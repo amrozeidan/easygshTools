@@ -12,9 +12,12 @@
 % - d_wlcomp
 % - e_excoef
 % - f_ptcomp
-%
+% - g_salinitycomp
+% - h_velocitycomp
+% - i_wavecomp
 
-function j_allcomp(varsToEval , telemac_module , common_folder , basefolder , slfFile ,main_path , date_a , period, doA, doB, doC, doD, doE, doF, doG, doH, doI)
+
+function j_allcomp(varsToEval , telemac_module , common_folder , basefolder , slfFile ,main_path , date_a , period , k , doA, doB, doC, doD, doE, doF, doG, doH, doI, offset)
 
         % a_precomp
         % *********
@@ -69,37 +72,37 @@ function j_allcomp(varsToEval , telemac_module , common_folder , basefolder , sl
         % comparing water levels by generating plots
         %
         if doD
-			d_wlcomp( common_folder , basefolder , main_path , date_a , period )
+			d_wlcomp( common_folder , basefolder , main_path , date_a , period , k, offset)
 		end
         
         % carrying out tidal analysis
         %
         if doE
-			e_excoef(common_folder, basefolder , main_path)
+			e_excoef(common_folder, basefolder , main_path, date_a , period, k, offset)
 		end
         
         %comparing parameters from tidal analysis
         %
         if doF
-			f_ptcomp(common_folder , basefolder  )
+			f_ptcomp(common_folder , basefolder )
         end
         
         %salinity comparison
         %
         if doG
-            g_salinitycomp (common_folder , basefolder , date_a , period )
+            g_salinitycomp (common_folder , basefolder , date_a , period, offset )
         end
         
         %velocity comparison
         %
         if doH
-            h_velocitycomp (common_folder , basefolder , date_a , period )
+            h_velocitycomp (common_folder , basefolder , date_a , period, offset )
         end
         
         %wave comparison
         %
         if doI
-            i_wavecomp (common_folder , basefolder , date_a , period )
+            i_wavecomp (common_folder , basefolder , date_a , period, offset )
         end
 end
 

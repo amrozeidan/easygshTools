@@ -217,6 +217,7 @@ for  kj=1:length(pTides)
         set(gca,'XtickLabel',meas_st)
         title(strcat('Amplitude comparison', ' for tide : ', pTides{kj}));
         ylabel('Amplitude');
+		ylim([0 inf]);
         
         dff = simul_A - meas_A;
         
@@ -227,6 +228,7 @@ for  kj=1:length(pTides)
         title(strcat('Amplitude difference', ' for tide : ', pTides{kj}));
         xlabel('Stations');
         ylabel('Amplitude Diffrence');
+		ylim([-0.3 0.3]);
         
         linkaxes([ax1 , ax2] , 'x');
         
@@ -242,7 +244,7 @@ for  kj=1:length(pTides)
         xtickangle(ax2,45);
         
         save_name_A = strcat(path_7, '/','A comparison', ' for tide ', pTides{kj});
-        savefig(save_name_A);
+        %savefig(save_name_A);
         saveas(gca, save_name_A , 'jpeg');
         clf
         close(h)
@@ -274,6 +276,7 @@ for  kj=1:length(pTides)
         set(gca,'XtickLabel',meas_st)
         title(strcat('Phase shift comparison', ' for tide : ', pTides{kj}));
         ylabel('Phase shift');
+		ylim([0 360])
         
         dff = simul_g - meas_g;
         
@@ -283,6 +286,7 @@ for  kj=1:length(pTides)
         set(gca,'XtickLabel',meas_st)
         xlabel('Stations');
         ylabel('Phase shift Diffrence');
+		ylim([-30 30])
         
         linkaxes([ax1 , ax2] , 'x');
         
@@ -298,7 +302,7 @@ for  kj=1:length(pTides)
         xtickangle(ax2,45);
         
         save_name_g = strcat(path_7, '/','g comparison', ' for tide ', pTides{kj});
-        savefig(save_name_g);
+        %savefig(save_name_g);
         saveas(gca, save_name_g , 'jpeg');
         clf
         close(h)
@@ -381,6 +385,8 @@ for  kj=1:length(pTides)
         set(gca,'XtickLabel',meas_st)
         title(strcat('Amplitude comparison', ' for tide : ', pTides{kj}));
         ylabel('Amplitude');
+		ylim([0 inf]);
+
         
         dff = simul_A - meas_A;
         
@@ -391,6 +397,7 @@ for  kj=1:length(pTides)
         title(strcat('Amplitude difference', ' for tide : ', pTides{kj}));
         xlabel('Stations');
         ylabel('Amplitude Diffrence');
+		ylim([-0.3 0.3]);
         
         linkaxes([ax1 , ax2] , 'x');
         
@@ -406,7 +413,7 @@ for  kj=1:length(pTides)
         xtickangle(ax2,45);
         
         save_name_A = strcat(path_7, '/','A comparison', ' for tide ', pTides{kj});
-        savefig(save_name_A);
+        %savefig(save_name_A);
         saveas(gca, save_name_A , 'jpeg');
         clf
         close(h)
@@ -438,6 +445,7 @@ for  kj=1:length(pTides)
         set(gca,'XtickLabel',meas_st)
         title(strcat('Phase shift comparison', ' for tide : ', pTides{kj}));
         ylabel('Phase shift');
+		ylim([0 360]);
         
         dff = simul_g - meas_g;
         
@@ -447,6 +455,7 @@ for  kj=1:length(pTides)
         set(gca,'XtickLabel',meas_st)
         xlabel('Stations');
         ylabel('Phase shift Diffrence');
+		ylim([-30 30]);
         
         linkaxes([ax1 , ax2] , 'x');
         
@@ -462,7 +471,7 @@ for  kj=1:length(pTides)
         xtickangle(ax2,45);
         
         save_name_g = strcat(path_7, '/','g comparison', ' for tide ', pTides{kj});
-        savefig(save_name_g);
+        %savefig(save_name_g);
         saveas(gca, save_name_g , 'jpeg');
         clf
         close(h)
