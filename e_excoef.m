@@ -15,138 +15,250 @@
 %extract the coeffitients of the simulations only, in case it does not
 %exist both coefficients for measurements and simulations are extracted.
 
-function e_excoef(common_folder, basefolder , main_path, date_a, period, k, offset)
-addpath(main_path)
+%%
+function e_excoef(common_folder, basefolder )
+%function e_excoef(common_folder, basefolder , main_path , period, k, offset)
+%addpath(main_path)
 
-%% checking if required_stations_data.dat file is available, if not run 'wlfileprep' function to generate it
-listing_common_folder = dir(common_folder);
-common_folder_file_name = {};
-for f=1:length(listing_common_folder)
-    common_folder_file_name = vertcat(common_folder_file_name , listing_common_folder(f).name) ;
-end
-indi = find(ismember(common_folder_file_name , 'required_stations_data_free_surface.dat' ));
-indo = find(ismember(common_folder_file_name , 'required_stations_data_free_surface_cropped.dat' ));
+% common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
+% basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
+% period = timerange('2006-01-01' , '2006-01-31') ;
+% k = 147 ;
 
-if isempty(indi)
-    c_wlfileprep (common_folder , basefolder )
-else
-end
-
-if isempty(indo)
-    c_wlfileprep (common_folder , basefolder )
-    d_wlcomp( common_folder , basefolder , main_path, date_a , period, k, offset)
-else
-end
-
-%% Exporting coefficients using ut_solv
-file_id = fopen( strcat(common_folder , '/required_stations_data_free_surface_cropped.dat') ,'r');
-data = textscan(file_id, '%s%s%s%n%n%n%n', 'Delimiter', ',', 'HeaderLines', 1);
-fclose(file_id);
-data_meas_file_name_with_directory_req = data{1,2};
-data_wl_simulated_file_name_with_directory_req = data{1,3};
-Locations_Names = data{1,1};
-Latitudes = data{1,6};
-
-%exporting A and g from measurements and simulations
-%addpath('./UtTools');
 addpath(strcat(common_folder , '/UtTools'));
 load('ut_constants.mat');
 pTides = importPTides('pTides.dat');
 
-% indicate whether analysis of the measurement data is already supplied
-indu = find(ismember(common_folder_file_name , 'coef_measured' ));
+%importing measurements and simulations tables
+%measurements timetable:
+filelist_meas = dir(fullfile(strcat(common_folder , '/measurements') , '*wl.dat' ));
+filepath_meas = strcat(filelist_meas(1).folder , '/' , filelist_meas(1).name) ;
 
-mkdir(basefolder, 'coef')
-path_4 = strcat(basefolder, '/coef')
+Ttmeas = readtable(filepath_meas);
+try
+    Ttmeas.Time = datetime (Ttmeas.Time , 'InputFormat' , 'dd-MM-yyyy HH:mm:ss' );
+catch
+    %warning(['Error using datetime (line 602)']);
+    Ttmeas.Time = datetime (Ttmeas.Time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
+end
+Ttmeas = table2timetable(Ttmeas);
 
-if isempty(indu)
+%simulations timetable:
+filelist_simul = dir(fullfile(strcat(basefolder , '/telemac_variables/variables_all_stations') , 'free_surface_all_stations.dat' ));
+filepath_simul = strcat(filelist_simul(1).folder , '/' , filelist_simul(1).name) ;
+
+Ttsimul = readtable(filepath_simul);
+Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
+Ttsimul = table2timetable(Ttsimul);
+
+%importing required station names
+filepath_req = strcat(common_folder, '/required_stations.dat');
+req_data = textread( filepath_req , '%s', 'delimiter', '\n')';
+
+%importing sattion database
+stationInfo = strcat(common_folder , '/info_all_stationsNoDashes.dat');
+TstationInfo = readtable(stationInfo , 'ReadRowNames' , true);
+
+%intersection of required stations, simulations and measurements:
+stations = intersect(intersect(Ttmeas.Properties.VariableNames , Ttsimul.Properties.VariableNames) , req_data );
+
+%% check the availability of coef
+try
+    ex_path_meas = strcat(common_folder , '/coef_measured/A_meas_all_stations.dat');
+    ex_main_t_a_meas = readtable(ex_path_meas , 'ReadRowNames' , true);
     
-    mkdir (path_4, 'coef_measured')
-    path_5 = strcat(path_4 , '/coef_measured')
-    
-    mkdir(common_folder, 'coef_measured')
-    path_add = strcat(common_folder, '/coef_measured')
-    
-    % examine parameters for measurements
-    % ***********************************
-    for cwl=1:length(data_meas_file_name_with_directory_req)
-        % reading measurements data
-        % *************************
-        cwl
-		data_meas_file_name_with_directory_req{cwl}
-		file_id_meas = fopen(data_meas_file_name_with_directory_req{cwl} ,'r')
-        meas_data = textscan(file_id_meas, '%{dd.MM.yyyy HH:mm:ss}D%n', 'Delimiter', ',', 'HeaderLines', 1);
-        fclose(file_id_meas);
-        % transfer to sepate cells
-        meas_dates = meas_data{1,1};
-        meas_wl = meas_data{1,2};
-        
-        latitude = Latitudes(cwl);
-        
-        %%%adjusting time for ut_solv%%%
-        %note: using the merged timeseries is
-        %exceding the maximum array size preference, and this may take longer
-        %time and cause MATLAB to become unresponsive
-        %Transform dates to numbers for interpolation
-        meas_dates_num = datenum(meas_dates);
+catch
+    disp('no previous meas coef are availale')
+    ex_main_t_a_meas = [] ;
+end
 
-        % eliminating NaN
-        meas_dates_num (isnan(meas_wl)) = [];
-        meas_wl(isnan(meas_wl)) = [];
-        
-        % eliminating outliers
-        meanWL = mean (meas_wl);
-        sigma = std(meas_wl-meanWL);
-        
-%         meas_dates_num (isoutlier(meas_wl)) = [];
-%         meas_wl (isoutlier(meas_wl)) = [];
-        
+try
+    ex_path_simul = strcat(basefolder , '/coef_simulated/A_simul_all_stations.dat');
+    ex_main_t_a_simul = readtable(ex_path_simul , 'ReadRowNames' , true);
+    
+catch
+    disp('no previous simul coef are availale')
+    ex_main_t_a_simul = [] ;
+end
 
-        %exporting coefficients using ut_solv
-        tidalcoef_meas = ut_solv(meas_dates_num,meas_wl,[],latitude,pTides);
-        my_data_coef_meas = horzcat(tidalcoef_meas.name,num2cell(tidalcoef_meas.A),num2cell(tidalcoef_meas.g));
-        save(strcat(path_5 , '/' ,'coef_of_meas_',Locations_Names{cwl}),'my_data_coef_meas');
-        save(strcat(path_add , '/' ,'coef_of_meas_',Locations_Names{cwl}),'my_data_coef_meas');
-        
-        clear('tidalcoef_meas');
-        clear('my_data_coef_meas');
+% case 1 where both meas and simul coef are extracted, but some additional
+% stations are added to required stations dat file and need to be extracted
+if ~isempty(ex_main_t_a_meas) && ~isempty(ex_main_t_a_simul)
+    available_stations = ex_main_t_a_meas.Properties.VariableNames ;
+    %new stations to be extracted
+    stations(ismember(stations , available_stations)) = [] ;
+    %in case there is no new stations, quit the script
+    if isempty(stations)
+        disp('function stopped, no new locations to be extracted')
+        return
     end
+    %store the existed all stations data, to be joined to the new stations later
+    ex_path_1 = strcat(common_folder , '/coef_measured/A_meas_all_stations.dat');
+    ex_path_2 = strcat(common_folder , '/coef_measured/g_meas_all_stations.dat');
+    ex_path_3 = strcat(basefolder , '/coef_simulated/A_simul_all_stations.dat');
+    ex_path_4 = strcat(basefolder , '/coef_simulated/g_simul_all_stations.dat');
+    
+    ex_main_t_a_meas = readtable(ex_path_1);
+    ex_main_t_g_meas = readtable(ex_path_2);
+    ex_main_t_a_simul = readtable(ex_path_3);
+    ex_main_t_g_simul = readtable(ex_path_4);
+    %used for joining later
+    ab = 1;
+    %ef = 0;added below
 end
 
-mkdir (path_4, 'coef_simulated')
-path_6 = strcat(path_4 , '/coef_simulated')
+%case 2 when we are using the measured extracted coef for the second time
+%within a new simulation, so the folder of coef is not yet created in the
+%basefolder (output folder)
+if ~isempty(ex_main_t_a_meas) && isempty(ex_main_t_a_simul)
+    %just extract simul coef
+    ef = 1;
+else
+    ef = 0;
+end
 
-for cwl=1:length(data_wl_simulated_file_name_with_directory_req)
+%%
+%cropping tables
+Ttmeas_crop = Ttmeas(period , :);
+Ttsimul_crop = Ttsimul(period , :);
+
+%creating empty tables
+t_empty = cell2table( horzcat(pTides , num2cell(zeros(24,0)) ));
+t_empty.Properties.VariableNames = {'tide'} ;
+
+main_t_a_meas = t_empty;
+main_t_g_meas = t_empty;
+main_t_a_simul = t_empty;
+main_t_g_simul = t_empty;
+
+%creating output directories
+mkdir(common_folder, 'coef_measured')
+path_4 = strcat(common_folder, '/coef_measured');
+
+mkdir(basefolder, 'coef_simulated')
+path_5 = strcat(basefolder, '/coef_simulated');
+
+%%
+%extracting coef and saving
+for cwl=1:length(stations)
+    %reading measurements data
+    meas_dates = Ttmeas_crop.Time;
+    meas_wl = Ttmeas_crop.(stations{cwl});
+    
+    %checking the amount of NaN in measurements
+    TF = ismissing(meas_wl);
+    num_NaN = sum(TF) ;
+    %if 40% of meas is NaN ignore the station and jump to the next one
+    if num_NaN >= 0.4*length(meas_wl)
+        X = sprintf('%s is not considered for this period because of high NaNs amount' , string(stations{cwl}) );
+        disp(X)
+        continue
+    end
+    
     %reading simulated data
-    data_wl_simulated_file_name_with_directory_req{cwl}
-    file_id_sim = fopen(data_wl_simulated_file_name_with_directory_req{cwl} ,'r');
-    sim_data = textscan(file_id_sim, '%{dd.MM.yyyy HH:mm:ss}D%n', 'Delimiter', ',', 'HeaderLines', 1);
-    fclose(file_id_sim);
-    % transfer to sepate cells
-    sim_dates = sim_data{1,1};
-    sim_wl = sim_data{1,2};
+    simul_dates = Ttsimul_crop.TimeStep_No;
+    %simul_dates = simul_dates + hours(offset);
+    simul_wl = Ttsimul_crop.(stations{cwl});
+    
+    %constructing timetables
+    ttmeas = timetable(meas_dates , meas_wl);
+    ttsimul = timetable(simul_dates , simul_wl);
+    
+    %synchronizing tables
+    tt = synchronize(ttmeas , ttsimul);
+    
+    %removing NaN
+    tt_noNaN = rmmissing(tt);
+    
+    %getting latitude
+    lat = TstationInfo{ stations{cwl} , 'Latitude'} ;
+    
+    %extracting tidal coef
+    if ef==0
+        tidalcoef_meas = ut_solv(datenum(tt_noNaN.meas_dates),tt_noNaN.meas_wl,[],lat,pTides);
+        tidalcoef_simul = ut_solv(datenum(tt_noNaN.meas_dates),tt_noNaN.simul_wl,[],lat,pTides);
         
-    latitude = Latitudes(cwl);
+        %save Amplitude and phasse shift from coef into tables
+        t_ag_meas = cell2table(horzcat(tidalcoef_meas.name,num2cell(tidalcoef_meas.A),num2cell(tidalcoef_meas.g)));
+        t_ag_meas.Properties.VariableNames = { 'tide' 'A' 'g'} ;
         
-    %%%adjusting time for ut_solv%%%
-    %note: using the merged timeseries is
-    %exceding the maximum array size preference, and this may take longer
-    %time and cause MATLAB to become unresponsive
-    %Transform dates to numbers for interpolation
-    sim_dates_num  = datenum(sim_dates);
-
-    % eliminating NaN
-    sim_dates_num(isnan(sim_wl)) = [];
-    sim_wl(isnan(sim_wl)) = [];
+        t_a_meas = cell2table(horzcat(tidalcoef_meas.name,num2cell(tidalcoef_meas.A)));
+        t_a_meas.Properties.VariableNames = { 'tide' stations{cwl}  } ;
+        t_g_meas = cell2table(horzcat(tidalcoef_meas.name,num2cell(tidalcoef_meas.g)));
+        t_g_meas.Properties.VariableNames = { 'tide' stations{cwl}  } ;
         
-    %exporting coefficients using ut_solv
-    tidalcoef_sim = ut_solv(sim_dates_num,sim_wl,[],latitude,pTides);
-    my_data_coef_wl_simulated = horzcat(tidalcoef_sim.name,num2cell(tidalcoef_sim.A),num2cell(tidalcoef_sim.g));
-    save(strcat(path_6 ,  '/' ,'coef_of_simulation_',Locations_Names{cwl}),'my_data_coef_wl_simulated');
+        t_ag_simul = cell2table(horzcat(tidalcoef_simul.name,num2cell(tidalcoef_simul.A),num2cell(tidalcoef_simul.g)));
+        t_ag_simul.Properties.VariableNames = { 'tide' 'A' 'g'} ;
         
-    clear('tidalcoef_wl_simulated');
-    clear('my_data_coef_wl_simulated');
+        t_a_simul = cell2table(horzcat(tidalcoef_simul.name,num2cell(tidalcoef_simul.A)));
+        t_a_simul.Properties.VariableNames = { 'tide' stations{cwl}  } ;
+        t_g_simul = cell2table(horzcat(tidalcoef_simul.name,num2cell(tidalcoef_simul.g)));
+        t_g_simul.Properties.VariableNames = { 'tide' stations{cwl} } ;
+        
+        main_t_a_meas = join(t_a_meas , main_t_a_meas);
+        main_t_g_meas = join(t_g_meas , main_t_g_meas);
+        main_t_a_simul = join(t_a_simul , main_t_a_simul);
+        main_t_g_simul = join(t_g_simul , main_t_g_simul);
+        
+        %save coef structure as mat file
+        save(strcat(path_4 , '/' ,'coef_of_meas_',stations{cwl}),'tidalcoef_meas');
+        save(strcat(path_5 ,  '/' ,'coef_of_simulation_',stations{cwl}),'tidalcoef_simul');
+        
+        %save A and g for each station
+        writetable( t_ag_meas , char( strcat(path_4 , '/' , 'A_g_meas_' ,stations{cwl} , '.dat') ))
+        writetable( t_ag_simul , char( strcat(path_5 , '/' , 'A_g_simul_' , stations{cwl} , '.dat') ))
+        
+        %save A for all stations
+        writetable( main_t_a_meas , char( strcat(path_4 , '/' , 'A_meas_all_stations' , '.dat') ))
+        writetable( main_t_a_simul , char( strcat(path_5 , '/' , 'A_simul_all_stations' , '.dat') ))
+        
+        %save g for all stations
+        writetable( main_t_g_meas , char( strcat(path_4 , '/' , 'g_meas_all_stations' , '.dat') ))
+        writetable( main_t_g_simul , char( strcat(path_5 , '/' , 'g_simul_all_stations' , '.dat') ))
+        
+    elseif ef==1
+        tidalcoef_simul = ut_solv(datenum(tt_noNaN.meas_dates),tt_noNaN.simul_wl,[],lat,pTides);
+        
+        %save Amplitude and phasse shift from coef into tables
+        t_ag_simul = cell2table(horzcat(tidalcoef_simul.name,num2cell(tidalcoef_simul.A),num2cell(tidalcoef_simul.g)));
+        t_ag_simul.Properties.VariableNames = { 'tide' 'A' 'g'} ;
+        
+        t_a_simul = cell2table(horzcat(tidalcoef_simul.name,num2cell(tidalcoef_simul.A)));
+        t_a_simul.Properties.VariableNames = { 'tide' stations{cwl}  } ;
+        t_g_simul = cell2table(horzcat(tidalcoef_simul.name,num2cell(tidalcoef_simul.g)));
+        t_g_simul.Properties.VariableNames = { 'tide' stations{cwl} } ;
+        
+        main_t_a_simul = join(t_a_simul , main_t_a_simul);
+        main_t_g_simul = join(t_g_simul , main_t_g_simul);
+        
+        %save coef structure as mat file
+        save(strcat(path_5 ,  '/' ,'coef_of_simulation_',stations{cwl}),'tidalcoef_simul');
+        
+        %save A and g for each station
+        writetable( t_ag_simul , char( strcat(path_5 , '/' , 'A_g_simul_' , stations{cwl} , '.dat') ))
+        
+        %save A for all stations
+        writetable( main_t_a_simul , char( strcat(path_5 , '/' , 'A_simul_all_stations' , '.dat') ))
+        
+        %save g for all stations
+        writetable( main_t_g_simul , char( strcat(path_5 , '/' , 'g_simul_all_stations' , '.dat') ))
+    end
+    clear('tidalcoef_meas');
+    clear('tidalcoef_simul');
 end
 
-disp('%%finishing time:')
-datetime('now')
+try
+    if ab==1
+        %save A for all stations
+        writetable( join(ex_main_t_a_meas , main_t_a_meas ) , char( strcat(path_4 , '/' , 'A_meas_all_stations' , '.dat') ))
+        writetable( join(ex_main_t_a_simul , main_t_a_simul ) , char( strcat(path_5 , '/' , 'A_simul_all_stations' , '.dat') ))
+        
+        %save g for all stations
+        writetable( join(ex_main_t_g_meas , main_t_g_meas ) , char( strcat(path_4 , '/' , 'g_meas_all_stations' , '.dat') ))
+        writetable( join(ex_main_t_g_simul , main_t_g_simul ) , char( strcat(path_5 , '/' , 'g_simul_all_stations' , '.dat') ))
+    end
+catch
+    disp('no previous coef')
+end
+
+end
