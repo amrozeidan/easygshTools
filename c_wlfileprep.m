@@ -4,8 +4,9 @@
 %names of stations are extracted from the required_stations.dat and their
 %data are exracted from info_all_stations.dat, and the measured and simulated
 %data directories are added to form required_stations_data_free_surface.dat
-%required_stations_data.dat contains: datations names, measurements
-%directories, simulations directories, easting, northing, latitudes.
+%required_stations_data_free_surface.dat contains: datations names, measurements
+%directories, simulations directories, easting, northing, latitudes and
+%station order number
 
 %usage: arguments:
 %a)common_folder
@@ -14,10 +15,7 @@
 
 %% c_wlfileprep
 
-%function c_wlfileprep (common_folder , basefolder )
-
-common_folder = '/Users/amrozeidan/Desktop/com4';
-basefolder = '/Users/amrozeidan/Desktop/res4';
+function c_wlfileprep (common_folder , basefolder )
 
 FileName_info = 'info_all_stations.dat';
 PathName_info = strcat(common_folder,'/');

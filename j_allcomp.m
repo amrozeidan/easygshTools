@@ -14,7 +14,7 @@
 % - f_ptcomp
 %
 
-function j_allcomp(varsToEval , common_folder , basefolder , slfFile ,main_path , date_a , period, doA, doB, doC, doD, doE, doF, doG, doH)
+function j_allcomp(varsToEval , telemac_module , common_folder , basefolder , slfFile ,main_path , date_a , period, doA, doB, doC, doD, doE, doF, doG, doH, doI)
 
         % a_precomp
         % *********
@@ -44,9 +44,13 @@ function j_allcomp(varsToEval , common_folder , basefolder , slfFile ,main_path 
         % define it as string cell of abbreviation :
         % for example {'U','V','S'}
         % salinity is added as SLNT
+        %
+        % telemac_module, '2D' or '3D' (others to be added later)
+        % telemac_module will define which dictionary has to be used when
+        % extracting telemac variables
 
         if doB
-			b_extelemac (common_folder , basefolder , slfFile , varsToEval , ' ')
+			b_extelemac (common_folder , basefolder , slfFile , varsToEval , ' ' , telemac_module)
 		end
         
         % c_wlfileprep
@@ -90,6 +94,12 @@ function j_allcomp(varsToEval , common_folder , basefolder , slfFile ,main_path 
         %
         if doH
             h_velocitycomp (common_folder , basefolder , date_a , period )
+        end
+        
+        %wave comparison
+        %
+        if doI
+            i_wavecomp (common_folder , basefolder , date_a , period )
         end
 end
 

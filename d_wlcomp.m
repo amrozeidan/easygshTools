@@ -1,11 +1,10 @@
 %% description of 'd_wlcomp' function
 %************************************
 %aims to compare measured and simulated water levels of the required
-%stations referring to required_stations_data.dat information.
+%stations referring to required_stations_data_free_surface.dat information.
 %plots:
 %
-% a) measured vs simulated data, their difference and their relative
-%    difference based on the required locations
+% a) measured vs simulated data, their difference based on the required locations
 % b) water level scatter diagram based on required locations
 % c) Normalised Root Mean Square Error based on required locations
 
@@ -19,13 +18,7 @@
 % d) date_a (starting date, give as 'datenum(YYYY,MM,DD,hh,mm,ss)')
 % e) period (days)
 
-%function d_wlcomp( common_folder , basefolder , main_path , date_a , period )
-
-common_folder = '/Users/amrozeidan/Desktop/com4';
-basefolder = '/Users/amrozeidan/Desktop/res4';
-main_path = '/Users/amrozeidan/Desktop/3_functions_rev12_20190305';
-date_a = datetime(2006,01,01,00,00,00) ;
-period = 31;
+function d_wlcomp( common_folder , basefolder , main_path , date_a , period )
 
 addpath(main_path)
 

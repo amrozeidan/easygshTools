@@ -1,4 +1,5 @@
-%telemac dictionary
+% pick a telemac dictionary based on the chosen telemac module to be used
+% for telemac variables extraction in b_extelemac
 
 function telemac_dict = pick_dict(telemac_module)
 

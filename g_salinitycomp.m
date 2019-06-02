@@ -2,13 +2,7 @@
 
 
 %% g_salinitycomp
-
-%function g_salinitycomp (common_folder , basefolder , date_a , period )
-
-common_folder = '/Users/amrozeidan/Desktop/com4';
-basefolder = '/Users/amrozeidan/Desktop/res4';
-date_a =  datetime(2006,01,01,00,00,00) ;
-period = 31;
+function g_salinitycomp (common_folder , basefolder , date_a , period )
 
 FileName_info = 'info_all_stations.dat';
 PathName_info = strcat(common_folder,'/');

@@ -15,10 +15,7 @@
 %extract the coeffitients of the simulations only, in case it does not
 %exist both coefficients for measurements and simulations are extracted.
 
-%function e_excoef(common_folder, basefolder , main_path)
-common_folder = '/Users/amrozeidan/Desktop/com4';
-basefolder = '/Users/amrozeidan/Desktop/res4';
-main_path = '/Users/amrozeidan/Desktop/3_functions_rev12_20190305';
+function e_excoef(common_folder, basefolder , main_path)
 addpath(main_path)
 
 %% checking if required_stations_data.dat file is available, if not run 'wlfileprep' function to generate it

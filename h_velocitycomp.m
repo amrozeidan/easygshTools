@@ -2,13 +2,7 @@
 
 
 %% h_velocitycomp
-
-% function h_velocitycomp (common_folder , basefolder , date_a , period )
-
-common_folder = '/Users/amrozeidan/Desktop/com4';
-basefolder = '/Users/amrozeidan/Desktop/res4';
-date_a =  datetime(2006,01,01,00,00,00) ;
-period = 31;
+function h_velocitycomp (common_folder , basefolder , date_a , period )
 
 FileName_info = 'info_all_stations.dat';
 PathName_info = strcat(common_folder,'/');
@@ -312,7 +306,7 @@ for cwl=1:row
     ylabel('Velocity magnitude');
     
     ax2 = subplot(2,1,2);
-    plot(date_sync_no_NaN_mag,direction_diff);
+    plot(date_sync_no_NaN_mag,magnitude_diff);
     title(strcat('Velocity magnitude difference,', ' Station : ', my_data_prep{cwl,1}{1}  , ',z=' , num2str(depth) , 'cm'));
     xlabel('Date/Time');
     ylabel('Velocity magnitude');

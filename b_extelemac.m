@@ -12,15 +12,10 @@
 %'ALL_VAR' for all variables extraction)
 %e)indate (optional, incase the initial date in tlemeac file is empty, it
 %will be substituted by indate, format: datetime(yyyy,MM,dd,HH,mm,ss))
+%f) telemac_module (defines which telemac dictionary to be used based on the module)
 
 %% b_extelemac
-%function b_extelemac (common_folder , basefolder , slfFile , argument_var_telemac , indate, telemac_module)
-common_folder = '/Users/amrozeidan/Desktop/com4';
-basefolder = '/Users/amrozeidan/Desktop/testab2';
-slfFile = '/Users/amrozeidan/Documents/hiwi/scripts/allcomp/t2d___res1207_NSea_rev03a.4_y2006_conf00.slf';
-argument_var_telemac = {'U' , 'V' , 'S' , 'SLNT' , 'W' ,  'A' , 'G'};
-telemac_module = '2D' ;
-
+function b_extelemac (common_folder , basefolder , slfFile , argument_var_telemac , indate, telemac_module)
 
 telemac_dict = pick_dict(telemac_module)
 

@@ -15,9 +15,7 @@
 %extract the sorted parameters of the simulations only, in case it does not
 %exist both sorted parameters for measurements and simulations are extracted.
 
-%function f_ptcomp(common_folder , basefolder)
-common_folder = '/Users/amrozeidan/Desktop/com4';
-basefolder = '/Users/amrozeidan/Desktop/res4';
+function f_ptcomp(common_folder , basefolder)
 
 listing_common_folder = dir(common_folder);
 common_folder_file_name = {};
