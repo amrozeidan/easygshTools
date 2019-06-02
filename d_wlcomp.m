@@ -26,14 +26,14 @@ function d_wlcomp( common_folder , basefolder , main_path , period , k, offset)
 % main_path = '/Users/amrozeidan/Desktop/EasyGSH/3_functions_rev16c_20190523';
 addpath(main_path)
 
-% common_folder = '/Users/amrozeidan/Desktop/EasyGSH/com2305_zeitrio' ;
-% basefolder = '/Users/amrozeidan/Desktop/EasyGSH/res2305_zeitrio';
+% common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
+% basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
 % period = timerange('2006-01-01' , '2006-01-31') ;
 % k = 147 ;
 
 %importing measurements and simulations tables
 %measurements timetable:
-filelist_meas = dir(fullfile(strcat(common_folder , '/measurements_prepared') , '*wl*.dat' ));
+filelist_meas = dir(fullfile(strcat(common_folder , '/measurements') , '*wl.dat' ));
 filepath_meas = strcat(filelist_meas(1).folder , '/' , filelist_meas(1).name) ;
 
 Ttmeas = readtable(filepath_meas);
@@ -49,7 +49,7 @@ Ttmeas = table2timetable(Ttmeas);
 % Ttmeas = standardizeMissing(Ttmeas , {-99999.0} , 'DataVariables' , Ttmeas.Properties.VariableNames);
 
 %simulations timetable:
-filelist_simul = dir(fullfile(strcat(basefolder , '/telemac_variables/variables_all_stations') , 'free_surface*.dat' ));
+filelist_simul = dir(fullfile(strcat(basefolder , '/telemac_variables/variables_all_stations') , 'free_surface_all_stations.dat' ));
 filepath_simul = strcat(filelist_simul(1).folder , '/' , filelist_simul(1).name) ;
 
 Ttsimul = readtable(filepath_simul);
@@ -73,25 +73,25 @@ data_mae = [];
 mkdir(basefolder, 'wl_comparison')
 path_3 = strcat(basefolder, '/wl_comparison') ;
 
-path_4 = strcat(common_folder , '/measurements_prepared') ;
+path_4 = strcat(common_folder , '/measurements') ;
 path_5 = strcat(basefolder , '/telemac_variables/variables_all_stations') ;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%updating timetables for all stations
-Ttmeas_crop = Ttmeas(period , :);
-Ttmeas_crop_noNaN = rmmissing(Ttmeas_crop);
-
-Ttsimul_crop = Ttsimul(period , :);
-Ttsimul_crop_noNaN = rmmissing(Ttsimul_crop);
-
-%then saving
-T_5 = timetable2table(Ttmeas_crop_noNaN);
-saving_name = strcat( path_4 , '/', filelist_meas(1).name(1:4) ,'.wl.crop.zeitrio' , '.dat');
-writetable(T_5,char(saving_name));
-
-T_6 = timetable2table(Ttsimul_crop_noNaN);
-saving_name = strcat(path_5 , '/', 'free_surface_all_stations_cropped' , '.dat');
-writetable(T_6,char(saving_name));
+% % %updating timetables for all stations
+% % Ttmeas_crop = Ttmeas(period , :);
+% % Ttmeas_crop_noNaN = rmmissing(Ttmeas_crop);
+% % 
+% % Ttsimul_crop = Ttsimul(period , :);
+% % Ttsimul_crop_noNaN = rmmissing(Ttsimul_crop);
+% % 
+% % %then saving
+% % T_5 = timetable2table(Ttmeas_crop_noNaN);
+% % saving_name = strcat( path_4 , '/', filelist_meas(1).name(1:4) ,'.wl.crop' , '.dat');
+% % writetable(T_5,char(saving_name));
+% % 
+% % T_6 = timetable2table(Ttsimul_crop_noNaN);
+% % saving_name = strcat(path_5 , '/', 'free_surface_all_stations_cropped' , '.dat');
+% % writetable(T_6,char(saving_name));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for cwl=1:length(stations)
@@ -239,7 +239,7 @@ close(h)
 
 % plot rmse for locations--------------------------------------------------
 h = figure('visible','on');
-%ax1 = subplot(2,1,1);
+ax1 = subplot(2,1,1);
 plot(cell2mat(data_rmse(:,2)),'rx')
 set(gca, 'XTick', 1:length(data_rmse))
 set(gca,'XtickLabel',data_rmse(:,1))
