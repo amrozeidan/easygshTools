@@ -17,13 +17,20 @@
 %% b_extelemac
 function b_extelemac (common_folder , basefolder , slfFile , argument_var_telemac , indate, telemac_module)
 
+% common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
+% basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
+% slfFile = '/Users/amrozeidan/Documents/hiwi/scripts/allcomp/t2d___res1207_NSea_rev03a.4_y2006_conf00.slf';
+% argument_var_telemac = {'U' , 'V' , 'S' , 'SLNT' , 'W' ,  'A' , 'G'};
+% telemac_module = '2D' ;
+
+
 telemac_dict = pick_dict(telemac_module)
 
 disp('%%starting time:')
 datetime('now')
 %% telemac data extraction --------------------------------------------
 
-FileName_info = 'info_all_stations.dat'; %stations should be arranged in order here
+FileName_info = 'info_all_stationsNoDashes.dat'; %stations should be arranged in order here
 PathName_info = strcat(common_folder,'/');
 
 addpath(strcat(common_folder , '/TelemacTools'));
@@ -209,6 +216,38 @@ if (~isempty(indu) && ~isempty(indv))
         
     end
     
+    %extracting and saving velocity components, magnitude and direction for
+    %all stations in one dat file, using the uv folder dat files
+    
+    uvlist = dir(fullfile(strcat(basefolder , '/telemac_variables/velocity_uv') , '*.dat'));
+    for uv=1:length(uvlist)
+        
+        stname = uvlist(uv).name(1:end-4) ;
+        %read as table
+        filepath = strcat(uvlist(uv).folder , '/' , uvlist(uv).name) ;
+        T = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
+        T.TimeStep_No = datetime (T.TimeStep_No , 'InputFormat' , 'dd-MM-yyyy HH:mm:ss' );
+        T = table2timetable(T);
+        %create new naming
+        add_name = {'_magn' , '_dirc'  , '_velv' , '_velu'} ;
+        stname_table = cellfun(@(x) strcat(x , add_name) , cellstr(stname) , 'Uniformoutput', 0) ;
+        stname_table_all = [] ;
+        for cu=1:numel(stname_table)
+            stname_table_all = [stname_table_all , stname_table{cu}] ;
+        end
+        %create new table
+        T.Properties.VariableNames(:) = stname_table_all ;
+        %and main table
+        if uv ==1
+            mainT = T;
+        else
+            mainT = synchronize(mainT , T);
+        end
+        
+    end
+    %save table
+    writetable(timetable2table(mainT) , char( strcat(path_3 , '/' , 'velocity_all_stations' ,  '.dat') ))
+    
     %save
     mag_all_stations = horzcat(my_time' , mag_all_stations );
     T = cell2table(mag_all_stations,'VariableNames',['Date' , Locations_Names_all']);
@@ -219,4 +258,88 @@ if (~isempty(indu) && ~isempty(indv))
     T = cell2table(dir_all_stations,'VariableNames',['Date' , Locations_Names_all']);
     saving_name = strcat(path_3 , '/', 'velocity_direction_all_stations' , '.dat');
     writetable(T,char(saving_name));
+end
+
+
+%% merging wave components
+%assuming that these are the components to focus on
+indh = find(ismember(extracted_var , 'wave_height'));
+indd = find(ismember(extracted_var , 'wave_mean_direction'));
+indm = find(ismember(extracted_var , 'wave_mean_period'));
+indp = find(ismember(extracted_var , 'wave_peak_period'));
+
+if (~isempty(indh) && ~isempty(indd) && ~isempty(indm) && ~isempty(indp))
+    
+    hlist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_height') , '*.dat'));
+    dlist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_mean_direction') , '*.dat'));
+    mlist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_mean_period') , '*.dat'));
+    plist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_peak_period') , '*.dat'));
+    
+    for w=1:length(hlist) %as all folders should contain the same stations
+        
+        stname = hlist(w).name(1:end-4) ;
+        %read as table
+        filepath = strcat(hlist(w).folder , '/' , hlist(w).name) ;
+        T1 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
+        try
+            T1.time = datetime (T1.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
+        catch
+            T1.time = datetime (T1.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
+        end
+        T1 = table2timetable(T1);
+        %create new naming
+        stname_table = strcat(stname , {'_swh'});
+        T1.Properties.VariableNames(:) = stname_table ;
+        
+        %read as table
+        filepath = strcat(dlist(w).folder , '/' , dlist(w).name) ;
+        T2 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
+        try
+            T2.time = datetime (T2.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
+        catch
+            T2.time = datetime (T2.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
+        end
+        T2 = table2timetable(T2);
+        %create new naming
+        stname_table = strcat(stname , {'_mwd'});
+        T2.Properties.VariableNames(:) = stname_table ;
+        
+        %read as table
+        filepath = strcat(mlist(w).folder , '/' , mlist(w).name) ;
+        T3 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
+        try
+            T3.time = datetime (T3.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
+        catch
+            T3.time = datetime (T3.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
+        end
+        T3 = table2timetable(T3);
+        %create new naming
+        stname_table = strcat(stname , {'_mwp'});
+        T3.Properties.VariableNames(:) = stname_table ;
+        
+        %read as table
+        filepath = strcat(plist(w).folder , '/' , plist(w).name) ;
+        T4 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
+        try
+            T4.time = datetime (T4.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
+        catch
+            T4.time = datetime (T4.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
+        end
+        T4 = table2timetable(T4);
+        %create new naming
+        stname_table = strcat(stname , {'_pwp'});
+        T4.Properties.VariableNames(:) = stname_table ;
+        
+        T = synchronize(T1,T2,T3,T4);
+        if w ==1
+            mainT = T;
+        else
+            mainT = synchronize(mainT , T);
+        end
+        
+    end
+    %save table
+    writetable(timetable2table(mainT) , char( strcat(path_3 , '/' , 'wave_all_stations' ,  '.dat') ))
+    
+end
 end
