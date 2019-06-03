@@ -1,7 +1,7 @@
 
 function ncdfimport(common_folder)
 
-%common_folder = '/Users/amrozeidan/Desktop/EasyGSH/com2305_ncdfrev02';
+%common_folder = '/Users/amrozeidan/Desktop/EasyGSH/com2305_ncdfrev03';
 
 
 stationSL =  strcat(common_folder , '/LongShortinfoNoDashes.dat');
@@ -28,7 +28,7 @@ for u=1:length(ncdflist)
     
     %time determination
     time_start = split(info.Attributes(5).Value , {'T' , '+'});
-    date_time_ref = datetime(time_start(1)+' '+time_start(2) , 'Format' , 'yyyy-MM-dd HH:mm:ss') ;
+    date_time_ref = datetime(strcat(time_start{1}," ",time_start{2}) , 'Format' , 'yyyy-MM-dd HH:mm:ss') ;
     time = ncread(filepath , 'time')';
     timestep = seconds(time(2) - time(1)); %in seconds
     
@@ -37,6 +37,9 @@ for u=1:length(ncdflist)
     for i=1:length(time)
         date_time(i) = date_time_ref + (i-1)*timestep ;
     end
+    
+    %determination of depths
+    depths = ncread(filepath , 'z')';
     
     %station names determination
     no_station = info.Dimensions(2).Length ;
@@ -68,6 +71,11 @@ for u=1:length(ncdflist)
             catch
                 warning(['Unrecognized row name ',stations{i}]);
                 stationsl(i) = stations(i);
+            end
+            %add the avaialble depth in case the name has not a depth, when
+            %it comes to velocity and salinity only
+            if prefix == string('sa') || prefix == string('cu')
+                stationsl(i) = cellstr(strcat( stationsl(i) , '_' , num2str(depths(i)*10 , '%03.f') )) ;
             end
         end
     end
@@ -145,21 +153,23 @@ end
 ncdfwavelist = [dir(fullfile(strcat(common_folder , '/measurements_prepared') , '*mwp*.dat' )) ; ...
     dir(fullfile(strcat(common_folder , '/measurements_prepared') , '*pwp*.dat' )) ; ...
     dir(fullfile(strcat(common_folder , '/measurements_prepared') , '*swh*.dat' )) ; ...
-    dir(fullfile(strcat(common_folder , '/measurements_prepared') , '*mvd*.dat' ))] ;
-for cn=1:length(ncdfwavelist)
-    filepath_cn = strcat(ncdfwavelist(1).folder , '/' , ncdfwavelist(cn).name) ;
-    
-    Ttwave = readtable(filepath_cn , 'Delimiter' , ',' , 'ReadVariableNames' , true);
-    Ttwave.Time = datetime (Ttwave.Time , 'InputFormat' , 'dd-MM-yyyy HH:mm:ss' );
-    Ttwave = table2timetable(Ttwave);
-    if cn == 1
-        Ttwavemain = Ttwave ;
-    else
-        Ttwavemain = synchronize(Ttwavemain, Ttwave);
+    dir(fullfile(strcat(common_folder , '/measurements_prepared') , '*mwd*.dat' ))] ;
+if ~isempty(ncdfwavelist)
+    for cn=1:length(ncdfwavelist)
+        filepath_cn = strcat(ncdfwavelist(1).folder , '/' , ncdfwavelist(cn).name) ;
+        
+        Ttwave = readtable(filepath_cn , 'Delimiter' , ',' , 'ReadVariableNames' , true);
+        Ttwave.Time = datetime (Ttwave.Time , 'InputFormat' , 'dd-MM-yyyy HH:mm:ss' );
+        Ttwave = table2timetable(Ttwave);
+        if cn == 1
+            Ttwavemain = Ttwave ;
+        else
+            Ttwavemain = synchronize(Ttwavemain, Ttwave);
+        end
     end
+    
+    writetable(timetable2table(Ttwavemain) , char( strcat(path_1 , '/' ,  string(year(Ttwavemain.Time(10))) , '.wv.DB.meas' , '.dat') ))
 end
-
-writetable(timetable2table(Ttwavemain) , char( strcat(path_1 , '/' ,  string(year(Ttwavemain.Time(10))) , '.wv.DB.meas' , '.dat') ))
 
 end
 
