@@ -2,415 +2,156 @@
 
 
 %% h_velocitycomp
-function h_velocitycomp (common_folder , basefolder , date_a , period, offset )
+function h_velocitycomp (common_folder , basefolder , period, offset )
 
-FileName_info = 'info_all_stations.dat';
-PathName_info = strcat(common_folder,'/');
+% common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
+% basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
+% period = timerange('2006-01-01' , '2006-01-31') ;
 
-req_data = textread(strcat(common_folder , '/required_stations.dat') , '%s', 'delimiter', '\n');
 
-listing_basefolder = dir(strcat(basefolder, '/telemac_variables'));
-basefolder_file_name = {};
-for f=1:length(listing_basefolder)
-    basefolder_file_name = vertcat(basefolder_file_name , listing_basefolder(f).name) ;
+%importing measurements and simulations tables
+%measurements timetable:
+filelist_meas = dir(fullfile(strcat(common_folder , '/measurements') , '*cu.dat' ));
+filepath_meas = strcat(filelist_meas(1).folder , '/' , filelist_meas(1).name) ;
+
+Ttmeas = readtable(filepath_meas);
+try
+    Ttmeas.Time = datetime (Ttmeas.Time , 'InputFormat' , 'dd-MM-yyyy HH:mm:ss' );
+catch
+    %warning(['Error using datetime (line 602)']);
+    Ttmeas.Time = datetime (Ttmeas.Time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
 end
-index_velocity_folder = find(ismember(basefolder_file_name , 'velocity_uv' ));
+Ttmeas = table2timetable(Ttmeas);
+%change VariableNames of Tmeas from station_depth_component to station_component_depth 
+stations_meas = cellfun(@(x) [x(1:end-9) , x(end-4:end) , x(end-8:end-5)] , Ttmeas.Properties.VariableNames , 'UniformOutput' , false ) ;
+Ttmeas.Properties.VariableNames = stations_meas ;
 
-listing_meas_velocity = dir(strcat(common_folder , '/measurements/velocity'));
-listing_simul_velocity = dir(strcat(basefolder, '/telemac_variables' , '/', basefolder_file_name{index_velocity_folder} ));
 
-disp(['measured velocity folder directory:' , ' ' , common_folder , '/measurements/velocity']);
-disp(['simulated velocity folder directory:' , ' ' , basefolder, '/telemac_variables' , '/', basefolder_file_name{index_velocity_folder} ]);
+%simulations timetable:
+filelist_simul = dir(fullfile(strcat(basefolder , '/telemac_variables/variables_all_stations') , 'velocity_all_stations.dat' ));
+filepath_simul = strcat(filelist_simul(1).folder , '/' , filelist_simul(1).name) ;
 
-data_meas_velocity_file_name = {};
-data_simul_velocity_file_name = {};
+Ttsimul = readtable(filepath_simul);
+Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
+Ttsimul = table2timetable(Ttsimul);
 
-% Find measurement station names
-for u=3:length(listing_meas_velocity)
-    meas_file_name = listing_meas_velocity(u).name ;
-    data_meas_velocity_file_name  = vertcat(data_meas_velocity_file_name  , {meas_file_name(1:end-4)});
+%importing required station names
+filepath_req = strcat(common_folder, '/required_stations.dat');
+req_data = textread( filepath_req , '%s', 'delimiter', '\n')';
+%add velocity components to required stations names
+add_name = {'_magn' , '_dirc' } ;
+req_data_n = cellfun(@(x) strcat(x , add_name) , cellstr(req_data) , 'Uniformoutput', 0) ;
+req_data_n_all = [] ;
+for cu=1:numel(req_data_n)
+    req_data_n_all = [req_data_n_all , req_data_n{cu}] ;
 end
-
-% Find simulation station names
-for uu=3:length(listing_simul_velocity)
-    simulated_file_name = listing_simul_velocity(uu).name ;
-    data_simul_velocity_file_name  = vertcat(data_simul_velocity_file_name  , {simulated_file_name(1:end-4)});
-end
-
-data_meas_velocity_file_name_with_directory_req = {};
-data_simul_velocity_file_name_with_directory_req = {};
-
-%get information about the stations from the station database file
-fileID = fopen(fullfile(PathName_info,FileName_info),'r');
-info_data = textscan(fileID, '%s%n%n%n%n', 'Delimiter', ',', 'HeaderLines', 1);
-fclose(fileID);
-
-Locations_Names={};
-RW_HW = [];
-Latitudes =[];
-num_order = [];
-depth_meas = [];
-    
-% go through the list of required stations
-for iui=1:length(req_data)
-    
-    % find index of required station in measurement files
-    expression = [req_data{iui}, '+\d*'] ;
-    index_meas = regexp(data_meas_velocity_file_name , expression);
-    isone = cellfun(@(x)isequal(x,1),index_meas);
-    index_meas = find(isone);
-    %index_meas = find(ismember(data_meas_velocity_file_name, req_data{iui}));
-    % find index of required station in database file
-    index_names_info = find(ismember(info_data{1,1} , req_data{iui}));
-    % find index of required station in simulated files list
-    index_names_simulated = find (ismember(data_simul_velocity_file_name, req_data{iui}));
-    
-    if(isempty(index_names_info) || isempty(index_meas) || isempty(index_names_simulated))
-        req_data{iui}
-        continue
-    else
-        for im=index_meas'
-        % gather file names from measurement files and simulation files    
-        data_meas_velocity_file_name_with_directory_req = vertcat(data_meas_velocity_file_name_with_directory_req ,strcat(common_folder , '/measurements/velocity/',data_meas_velocity_file_name{im},'.dat'));
         
-        data_simul_velocity_file_name_with_directory_req = vertcat(data_simul_velocity_file_name_with_directory_req , strcat(basefolder, '/telemac_variables' , '/', basefolder_file_name{index_velocity_folder},'/',info_data{1,1}{index_names_info},'.dat'));
-        
-        %available locations names (other stations are skipped)
-        Locations_Names = vertcat(Locations_Names, info_data{1,1}(index_names_info));
-        
-        % find coordinates from database file
-        % in ETRS89 (or mesh coordinates)
-        RW_HW = vertcat(RW_HW, horzcat(info_data{1,2}(index_names_info),info_data{1,3}(index_names_info)));
-        
-        % in WGS84 (latlon coordinates)
-        Latitudes = vertcat(Latitudes, info_data{1,4}(index_names_info));
-        
-        % find station order number
-        num_order = vertcat(num_order, info_data{1,5}(index_names_info) );
-        
-         % find depth for measurements
-        depth_meas = vertcat(depth_meas , str2double(extractAfter(data_meas_velocity_file_name{im},'.'))/10 );
-        
-        end
-    end
-end
-%end
-
-disp('%% Stations in common between measurements,simulated data and the required stations:');
-Locations_Names
-
-disp('%%and this/these station/s has/have missed data in either measurements or simulations');
-setdiff(req_data , Locations_Names)
-
-disp('%%hence the files to be compared are from measurements and simulations consecutively:');
-data_meas_velocity_file_name_with_directory_req
-data_simul_velocity_file_name_with_directory_req
-
-disp('%%these data are saved into this dat file:');
-
-my_data_prep = cell (length(Locations_Names) , 8);
-RW = RW_HW(:,1);
-HW = RW_HW(:,2);
-
-for k = 1:length(Locations_Names)
-    my_data_prep{k,1} = Locations_Names(k);
-    my_data_prep{k,2} = data_meas_velocity_file_name_with_directory_req(k);
-    my_data_prep{k,3} = data_simul_velocity_file_name_with_directory_req(k);
-    my_data_prep{k,4} = RW(k);
-    my_data_prep{k,5} = HW(k);
-    my_data_prep{k,6} = Latitudes(k);
-    my_data_prep{k,7} = num_order(k);
-    my_data_prep{k,8} = depth_meas(k);
-end
-
-%sort order of the prepared data based on the sorting order
-my_data_prep = sortrows(my_data_prep,[7]);
-
-% T = cell2table(my_data_prep,'VariableNames',{'Location_Names', 'Meas_dir' , 'Simul_dir' , 'RW' , 'HW' , 'Latitudes' , 'Station_No' , 'z'});
-% saving_name = strcat(common_folder,'/', 'required_stations_data' , '.dat')
-% writetable(T,char(saving_name));
+%intersection of required stations, simulations and measurements:
+%station names from meas timetable without the depth
+stations_meas_no_z = cellfun(@(x) x(1:end-4) , Ttmeas.Properties.VariableNames , 'UniformOutput' , false ) ;
+stations_simul = Ttsimul.Properties.VariableNames  ;
+stations = intersect(intersect( stations_meas_no_z , stations_simul) , req_data_n_all );
 
 
-%% velocity comparison 
 
-%creating folders for results storage
 mkdir(basefolder, 'velocity_comparison')
 path_3 = strcat(basefolder, '/velocity_comparison') ;
 
-%%%%%%%%%%%%%%%dates addition%%%%%%%%%%%%%%%%%%%%
-%required period: from date_a up to 31 days for example
-req_time_initial = date_a;
-for i=1:period
-    req_time{i} = req_time_initial + (i-1)*days(1);
-end
-%then converting to yyyymmdd
-for i=1:length(req_time)
-    req_time_as_ymd(i) = yyyymmdd(req_time{i});
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+velocity_comp_shrt = {'magn' 'dirc' 'velv' 'velu'}';
+velocity_comp = {'Velocity Magnitude' 'Velocity Direction' 'Velocity_v' 'Velocity_u'}';
+Tvc = table( velocity_comp , 'RowNames' , velocity_comp_shrt );
 
 
-[row , col] = size(my_data_prep);
-TT_main_mag_meas_for_comp = timetable(date_a,0);
-TT_main_mag_simul_for_comp = timetable(date_a,0);
-TT_main_dir_meas_for_comp = timetable(date_a,0);
-TT_main_dir_simul_for_comp = timetable(date_a,0);
-
-header_meas = {};
-header_simul = {};
-
-
-for cwl=1:row
+for cwl=1:length(stations)
     
-    %headers for dat files for velocity for all stations
-    %header for measured data,combining the station name with the depth
-    header_meas = horzcat (header_meas , [my_data_prep{cwl,1}{1},'_',num2str(my_data_prep{cwl,8})])
-    %header for simulated data containing station names only
-    header_simul = horzcat (header_simul , my_data_prep{cwl,1}{1})
-
-    %reading measurements data
-    file_id_meas = fopen(my_data_prep{cwl,2}{1} ,'r');
-    my_data_prep{cwl,2}{1}
-    depth = 100 * my_data_prep{cwl,8};
-    %%%for measurements dat files with zeitrio format
-    %looking for '# ------------------------------------------' ,when
-    %when reading dat files in dat_zeitrio folders
-    l = 0;
-    while ~feof(file_id_meas)
-        st = fgetl(file_id_meas);
-        l = l + 1;
-        if  ~isempty(strfind(st,'# ------------------------------------------ '))
-            fseek(file_id_meas , 0 , 'bof' ); % to reset the file pointer to the beginning or frewind(fid)
-            break
+    idx_meas = find(contains(stations_meas_no_z , stations{cwl}));
+    
+    for kl=1:length(idx_meas)
+        
+        %getting depth of measured velocity
+        fullname_meas = Ttmeas.Properties.VariableNames{idx_meas(kl)} ;
+        depth = string(str2double(fullname_meas(end-2:end))/10);
+        component = fullname_meas(end-7:end-4);
+        component_plot = Tvc.velocity_comp(component);
+        station_plot = fullname_meas(1:end-9);
+        
+        %reading measurements data
+        meas_dates = Ttmeas.Time;
+        meas_vc = Ttmeas.(fullname_meas);
+        
+        %reading simulated data
+        simul_dates = Ttsimul.TimeStep_No;
+        %simul_dates = simul_dates + hours(offset);
+        simul_vc = Ttsimul.(stations{cwl});
+        
+        %constructing timetables
+        ttmeas = timetable(meas_dates , meas_vc);
+        ttsimul = timetable(simul_dates , simul_vc);
+        
+        %timetables covering the required period for comparison
+        ttmeas = ttmeas(period , :);
+        ttsimul = ttsimul(period , :);
+        
+        %synchronizing tables
+        tt = synchronize(ttmeas , ttsimul);
+        
+        %synchronized table without NaN for comparison (differences)
+        ttcomp_noNaN = rmmissing(tt);
+        
+        %magnitude/direction difference
+        vc_diff = ttcomp_noNaN.simul_vc - ttcomp_noNaN.meas_vc ;
+        TT_vc_diff = timetable(ttcomp_noNaN.meas_dates , vc_diff );
+        %salinity difference main table containing all stations
+        if cwl ==1
+            TT_vc_diff_main = TT_vc_diff;
+        else
+            TT_vc_diff_main = synchronize(TT_vc_diff_main , TT_vc_diff);
         end
-    end
-    
-    meas_data = textscan(file_id_meas, '%{dd.MM.yyyy HH:mm:ss}D %f %f %f %f', 'Delimiter', ';', 'HeaderLines', l);
-    fclose(file_id_meas);
-    meas_dates = meas_data{1,1};
-    meas_magnitude = meas_data{1,2};
-    meas_direction = meas_data{1,3};
-    meas_velocity_v = meas_data{1,4};
-    meas_velocity_u = meas_data{1,5};
-    
-    %reading simulated data
-    file_id_simul = fopen(my_data_prep{cwl,3}{1} ,'r');
-    my_data_prep{cwl,3}{1} 
-    simul_data = textscan(file_id_simul, '%{dd/MM/yyyy HH:mm:ss}D%n%n%n%n', 'Delimiter', ',', 'HeaderLines', 1);
-    fclose(file_id_simul);
-    simul_dates = simul_data{1,1};
-    simul_dates = simul_dates + hours(offset);
-    simul_magnitude = simul_data{1,2};
-    simul_direction = simul_data{1,3};
-    simul_velocity_v = simul_data{1,4};
-    simul_velocity_u = simul_data{1,5};
-
-    
-    %%%%%%%%%%%%%%%dates addition%%%%%%%%%%%%%%%%%%%%%
-    %converting meas_dates and wl_simulated_dates to yyyymmdd
-    for i=1:length(meas_dates)
-        meas_dates_as_ymd(i) = yyyymmdd(meas_dates(i));
-    end
-    for i=1:length(simul_dates)
-        simul_dates_as_ymd(i) = yyyymmdd(simul_dates(i));
-    end
-    
-    %find indices of the required period
-    [~ ,idx_meas] = find(ismember(meas_dates_as_ymd, req_time_as_ymd));
-    [~ ,idx_simul] = find(ismember(simul_dates_as_ymd, req_time_as_ymd));
-    %extract final time from my_time
-    meas_dates_for_comp = meas_dates(idx_meas);
-    simul_dates_for_comp = simul_dates(idx_simul);
-    %and magnitude values
-    meas_magnitude_for_comp = meas_magnitude(idx_meas);
-    simul_magnitude_for_comp = simul_magnitude(idx_simul);
-    %and direction values
-    meas_direction_for_comp = meas_direction(idx_meas);
-    simul_direction_for_comp = simul_direction(idx_simul);
-    %ignoring the replaced value -777.0 for the missed data generated by
-    %zeitrio for measurements
-    %TODO: Read the no value entry from the zeitrio file
-    index_99999 = find(meas_magnitude_for_comp < -100.00);
-    meas_magnitude_for_comp(index_99999) = NaN ;
-    meas_direction_for_comp(index_99999) = NaN ;
-
-    %constructing timetables
-    TT_meas_magnitude = timetable(meas_dates_for_comp , meas_magnitude_for_comp);
-    TT_simul_magnitude = timetable(simul_dates_for_comp , simul_magnitude_for_comp);
-    %synchronising
-    TT_meas_simul_sync = synchronize(TT_meas_magnitude,TT_simul_magnitude);
-    %removing NaN (missing data) from timetable for both measured and simulated data(just in case)
-    TT_meas_simul_sync_no_NaN = rmmissing(TT_meas_simul_sync);
-    %taking back the data from timetable
-    date_sync_no_NaN_mag = timetable2table(TT_meas_simul_sync_no_NaN);
-    date_sync_no_NaN_mag = table2array(date_sync_no_NaN_mag(:,1));
-    TT_meas_simul_sync_no_NaN_c_mag = table2cell(timetable2table(TT_meas_simul_sync_no_NaN));
-    magnitude_meas_sync_no_NaN = cell2mat(TT_meas_simul_sync_no_NaN_c_mag(:,2));
-    magnitude_simul_sync_no_NaN = cell2mat(TT_meas_simul_sync_no_NaN_c_mag(:,3)) ;
-    %magnitude difference
-    magnitude_diff = magnitude_simul_sync_no_NaN - magnitude_meas_sync_no_NaN ;
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %saving velocity magnitudde for all stations in the same dat file; measured and
-    %simulated 
-    TT_main_mag_meas_for_comp = synchronize(TT_main_mag_meas_for_comp,TT_meas_magnitude);
-    TT_main_mag_simul_for_comp = synchronize(TT_main_mag_simul_for_comp,TT_simul_magnitude);
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   
-    %constructing timetables
-    TT_meas_direction = timetable(meas_dates_for_comp , meas_direction_for_comp);
-    TT_simul_direction = timetable(simul_dates_for_comp , simul_direction_for_comp);
-    %synchronising
-    TT_meas_simul_sync = synchronize(TT_meas_direction,TT_simul_direction);
-    %removing NaN (missing data) from timetable for both measured and simulated data(just in case)
-    TT_meas_simul_sync_no_NaN = rmmissing(TT_meas_simul_sync);
-    %taking back the data from timetable
-    date_sync_no_NaN_dir = timetable2table(TT_meas_simul_sync_no_NaN);
-    date_sync_no_NaN_dir = table2array(date_sync_no_NaN_dir(:,1));
-    TT_meas_simul_sync_no_NaN_c_dir = table2cell(timetable2table(TT_meas_simul_sync_no_NaN));
-    direction_meas_sync_no_NaN = cell2mat(TT_meas_simul_sync_no_NaN_c_dir(:,2));
-    direction_simul_sync_no_NaN = cell2mat(TT_meas_simul_sync_no_NaN_c_dir(:,3)) ;
-    %direction difference
-    direction_diff = direction_simul_sync_no_NaN - direction_meas_sync_no_NaN ;
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %saving velocity direction for all stations in the same dat file; measured and
-    %simulated 
-    TT_main_dir_meas_for_comp = synchronize(TT_main_dir_meas_for_comp,TT_meas_magnitude);
-    TT_main_dir_simul_for_comp = synchronize(TT_main_dir_simul_for_comp,TT_simul_magnitude);
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    %plot magnitudes and magnitude diffferences
-    h = figure('visible','off');
-    
-    ax1 = subplot(2,1,1);
-    plot(meas_dates_for_comp,meas_magnitude_for_comp,'-b');
-    hold on
-    plot(simul_dates_for_comp,simul_magnitude_for_comp,'-r');
-    title(strcat('Velocity magnitude comparison,', ' Station : ', my_data_prep{cwl,1}{1}  , ',z=' , num2str(depth) , 'cm'));
-    legend('Measurements','Simulations');
-    ylabel('Velocity magnitude');
-    
-    ax2 = subplot(2,1,2);
-    plot(date_sync_no_NaN_mag,magnitude_diff);
-    title(strcat('Velocity magnitude difference,', ' Station : ', my_data_prep{cwl,1}{1}  , ',z=' , num2str(depth) , 'cm'));
-    xlabel('Date/Time');
-    ylabel('Velocity magnitude');
-    
-    if ~isempty(date_sync_no_NaN_mag)
-    linkaxes([ax1 , ax2] , 'x');
-    end
-    
-    grid(ax1,'on');
-    grid(ax2,'on');
-    ax1.FontSize = 10.5;
-    ax2.FontSize = 10.5;
-    pbaspect(ax1 , 'auto') %[x y z]
-    pbaspect(ax2 , 'auto')
-    
-    %set(ax1,'position',[.1 .4 .8 .5])
-    %set(ax2,'position',[.1 .1 .8 .3])
-    
-    save_name = strcat(path_3, '/','MagnitudeComparison', '_Station_', my_data_prep{cwl,1}{1}  , '_z' , num2str(depth));
-    % % savefig(h, save_name, 'compact');
-    saveas(gca, save_name , 'jpeg');
-    clf
-    close(h)
-    
-    %plot direction and direction diffferences
-    h = figure('visible','off');
-    
-    ax1 = subplot(2,1,1);
-    plot(meas_dates_for_comp,meas_direction_for_comp,'-b');
-    hold on
-    plot(simul_dates_for_comp,simul_direction_for_comp,'-r');
-    title(strcat('Velocity direction comparison,', ' Station : ', my_data_prep{cwl,1}{1}  , ',z=' , num2str(depth) , 'cm'));
-    legend('Measurements','Simulations');
-    ylabel('Velocity direction');
-    
-    ax2 = subplot(2,1,2);
-    plot(date_sync_no_NaN_dir,direction_diff);
-    title(strcat('Velocity direction difference,', ' Station : ', my_data_prep{cwl,1}{1}  , ',z=' , num2str(depth) , 'cm'));
-    xlabel('Date/Time');
-    ylabel('Velocity direction');
-    
-    if ~isempty(date_sync_no_NaN_dir)
-    linkaxes([ax1 , ax2] , 'x');
-    end
-    
-    grid(ax1,'on');
-    grid(ax2,'on');
-    ax1.FontSize = 10.5;
-    ax2.FontSize = 10.5;
-    pbaspect(ax1 , 'auto') %[x y z]
-    pbaspect(ax2 , 'auto')
-    
-    %set(ax1,'position',[.1 .4 .8 .5])
-    %set(ax2,'position',[.1 .1 .8 .3])
-    
-    save_name = strcat(path_3, '/','DirectionComparison', '_Station_', my_data_prep{cwl,1}{1}  , '_z' , num2str(depth));
-    % % savefig(h, save_name, 'compact');
-    saveas(gca, save_name , 'jpeg');
-    clf
-    close(h)
-
-end
-
-
-%% extracting measured and simulated velocity magnitude for all stations (for comparison)
-main_mag_meas_for_comp_c = table2cell(timetable2table(TT_main_mag_meas_for_comp ));
-main_mag_meas_for_comp_c(:,2) = [];
-main_dir_meas_for_comp_c = table2cell(timetable2table(TT_main_dir_meas_for_comp ));
-main_dir_meas_for_comp_c(:,2) = [];
-
-main_mag_simul_for_comp_c = table2cell(timetable2table(TT_main_dir_simul_for_comp));
-main_mag_simul_for_comp_c(:,2) = [];
-main_dir_simul_for_comp_c = table2cell(timetable2table(TT_main_dir_simul_for_comp));
-main_dir_simul_for_comp_c(:,2) = [];
-
-header_meas = ['Date' , header_meas];
-header_simul = ['Date' , header_simul];
-
-main_mag_meas_for_comp_c = vertcat(header_meas , main_mag_meas_for_comp_c );
-main_mag_simul_for_comp_c = vertcat(header_simul , main_mag_simul_for_comp_c );
-main_dir_meas_for_comp_c = vertcat(header_meas , main_dir_meas_for_comp_c );
-main_dir_simul_for_comp_c = vertcat(header_simul , main_dir_simul_for_comp_c );
-
-%removing duplicates from simulated data main cell
-uni_station = unique(main_mag_simul_for_comp_c(1,:)) ;
-for vu=1:length(uni_station)
-    index_extract = regexp( main_mag_simul_for_comp_c(1,:), uni_station{vu});
-    isone = cellfun(@(x)isequal(x,1),index_extract);
-    index_extract = find(isone);
-    %keep the min index and remove the other columns, min index is in the
-    %first cell usually
-    index_extract(1) = [] ;
-    if ~isempty(index_extract)
-        main_mag_simul_for_comp_c(:,min(index_extract):max(index_extract)) = [];
-        main_dir_simul_for_comp_c(:,min(index_extract):max(index_extract)) = [];
+        
+        %subplots of velocity components comparison and difference
+        h = figure('visible','off');
+        
+        ax1 = subplot(2,1,1);
+        plot(ttmeas.meas_dates , ttmeas.meas_vc ,'-b');
+        hold on
+        plot(ttsimul.simul_dates , ttsimul.simul_vc,'-r');
+        hold on
+        plot(ttcomp_noNaN.meas_dates , vc_diff);
+        title(strcat( component_plot{:} , ' comparison,', ' Station : ', station_plot , ', depth=' , depth));
+        legend('Measurements','Simulations','Differences');
+        lgd.NumColumns = 3;
+        ylabel(component_plot{:});
+        set(gca,'FontSize',6)
+        %ylim([-5 5])
+        
+        ax2 = subplot(2,1,2);
+        plot(ttcomp_noNaN.meas_dates, vc_diff);
+        title(strcat(component_plot{:} , ' difference,', ' Station : ',  station_plot , ', depth=' , depth));
+        xlabel('Date/Time');
+        ylabel(strcat(component_plot{:} , ' Difference'));
+        set(gca,'FontSize',6)
+        %ylim([-0.75 0.75])
+        
+        if ~isempty(ttcomp_noNaN.meas_dates)
+            linkaxes([ax1 , ax2] , 'x');
+        end
+        
+        grid(ax1,'on');
+        grid(ax2,'on');
+        ax1.FontSize = 6;
+        ax2.FontSize = 6;
+        pbaspect(ax1 , 'auto') %[x y z]
+        pbaspect(ax2 , 'auto')
+        
+        %set(ax1,'position',[.1 .4 .8 .5])
+        %set(ax2,'position',[.1 .1 .8 .3])
+        
+        save_name = strcat(path_3, '/',component_plot{:}, '_Station_', station_plot ,'_' , fullname_meas(end-2:end));
+        %    savefig(h, save_name, 'compact');
+        saveas(gca, save_name , 'jpeg');
+        clf
+        close(h)
+        
+        
     end
 end
-
-mkdir(basefolder, 'telemac_variables')
-path_1 = strcat(basefolder, '/telemac_variables')
-
-mkdir (path_1, 'variables_all_stations')
-path_6 = strcat(path_1, '/variables_all_stations')
-
-mkdir(strcat(common_folder, '/measurements') , 'variables_all_stations')
-path_5 = strcat(common_folder , '/measurements/variables_all_stations');
-
-T_5 = cell2table(main_mag_meas_for_comp_c);
-saving_name = strcat(path_5, '/', 'velocity_magnitude_all_stations_cropped' , '.dat');
-writetable(T_5,char(saving_name));
-T_5 = cell2table(main_dir_meas_for_comp_c);
-saving_name = strcat(path_5, '/', 'velocity_direction_all_stations_cropped' , '.dat');
-writetable(T_5,char(saving_name));
-
-T_6 = cell2table(main_mag_simul_for_comp_c);
-saving_name = strcat(path_6 , '/', 'velocity_magnitude_all_stations_cropped' , '.dat');
-writetable(T_6,char(saving_name));
-T_6 = cell2table(main_dir_simul_for_comp_c);
-saving_name = strcat(path_6 , '/', 'velocity_direction_all_stations_cropped' , '.dat');
-writetable(T_6,char(saving_name));
-
