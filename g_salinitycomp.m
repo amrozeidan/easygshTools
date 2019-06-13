@@ -2,7 +2,7 @@
 
 
 %% g_salinitycomp
-function g_salinitycomp (common_folder , basefolder , date_a , period, offset )
+function g_salinitycomp (common_folder , basefolder , period, offset )
 
 % common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
 % basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
@@ -68,12 +68,16 @@ for cwl=1:length(stations)
         ttmeas = timetable(meas_dates , meas_sa);
         ttsimul = timetable(simul_dates , simul_sa);
         
+        %timetables covering the required period for comparison
+        ttmeas = ttmeas(period , :);
+        ttsimul = ttsimul(period , :);
+        
+        
         %synchronizing tables
         tt = synchronize(ttmeas , ttsimul);
         
-        %tables covering the required period for comparison
-        ttcomp = tt(period , :);
-        ttcomp_noNaN = rmmissing(ttcomp);
+        %synchronized table without NaN for comparison (differences)
+        ttcomp_noNaN = rmmissing(tt);
         
         %salinity difference
         sa_diff = ttcomp_noNaN.simul_sa - ttcomp_noNaN.meas_sa ;
@@ -86,12 +90,12 @@ for cwl=1:length(stations)
         end
         
         %subplots of salinity comparison and difference
-        h = figure('visible','on');
+        h = figure('visible','off');
         
         ax1 = subplot(2,1,1);
-        plot(ttcomp.meas_dates , ttcomp.meas_sa ,'-b');
+        plot(ttmeas.meas_dates , ttmeas.meas_sa ,'-b');
         hold on
-        plot(ttcomp.meas_dates , ttcomp.simul_sa,'-r');
+        plot(ttsimul.simul_dates , ttsimul.simul_sa,'-r');
         hold on
         plot(ttcomp_noNaN.meas_dates , sa_diff);
         title(strcat('Salinity comparison,', ' Station : ', stations(cwl) , ', depth=' , depth));

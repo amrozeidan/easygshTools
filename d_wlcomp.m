@@ -15,16 +15,15 @@
 % a) common_folder
 % b) basefolder
 % c) main_path (path of functions)
-% d) date_a (starting date, give as 'datenum(YYYY,MM,DD,hh,mm,ss)')
-% e) period , has to be defined as timerange :
+% d) period , has to be defined as timerange :
 %    for example: timerange('2006-01-01' , '2006-03-01')
 %    covering Jan and Feb
-% f) k moving average steps
+% e) k moving average steps
 
-function d_wlcomp( common_folder , basefolder , main_path , period , k, offset)
+function d_wlcomp( common_folder , basefolder , period , k, offset)
 
 % main_path = '/Users/amrozeidan/Desktop/EasyGSH/3_functions_rev16c_20190523';
-addpath(main_path)
+% addpath(main_path)
 
 % common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
 % basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
@@ -108,12 +107,15 @@ for cwl=1:length(stations)
     ttmeas = timetable(meas_dates , meas_wl);
     ttsimul = timetable(simul_dates , simul_wl);
     
+    %timetables covering the required period for comparison
+    ttmeas = ttmeas(period , :);
+    ttsimul = ttsimul(period , :);
+    
     %synchronizing tables
     tt = synchronize(ttmeas , ttsimul);
     
-    %tables covering the required period for comparison
-    ttcomp = tt(period , :);
-    ttcomp_noNaN = rmmissing(ttcomp);
+    %synchronized table without NaN for comparison (differences)
+    ttcomp_noNaN = rmmissing(tt);
     
     %water level difference
     wl_diff = ttcomp_noNaN.simul_wl - ttcomp_noNaN.meas_wl ;
@@ -139,9 +141,9 @@ for cwl=1:length(stations)
     h = figure('visible','off');
     
     ax1 = subplot(2,1,1);
-    plot(ttcomp.meas_dates , ttcomp.meas_wl ,'-b');
+    plot(ttmeas.meas_dates , ttmeas.meas_wl ,'-b');
     hold on
-    plot(ttcomp.meas_dates , ttcomp.simul_wl,'-r');
+    plot(ttsimul.simul_dates , ttsimul.simul_wl ,'-r');
     hold on
     plot(ttcomp_noNaN.meas_dates , wl_diff);
     title(strcat('Water Level comparison,', ' Station : ', stations(cwl)));
