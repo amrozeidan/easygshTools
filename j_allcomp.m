@@ -17,7 +17,7 @@
 % - i_wavecomp
 
 
-function j_allcomp(varsToEval , telemac_module , common_folder , basefolder , slfFile ,main_path , date_a , period , k , doA, doB, doC, doD, doE, doF, doG, doH, doI, offset)
+function j_allcomp(varsToEval , telemac_module , common_folder , basefolder , slfFile ,main_path , date_a , period , k , doA, doB, doC, doD, doE, doE2, doF, doG, doH, doI, offset)
 
         % a_precomp
         % *********
@@ -79,8 +79,13 @@ function j_allcomp(varsToEval , telemac_module , common_folder , basefolder , sl
         %
         if doE
 			e_excoef(common_folder, basefolder , main_path, date_a , period, k, offset)
-		end
+        end
         
+        % peaks comparison 
+        % 
+        if doE2
+            e2_getPeaks(common_folder, basefolder)
+            
         %comparing parameters from tidal analysis
         %
         if doF
