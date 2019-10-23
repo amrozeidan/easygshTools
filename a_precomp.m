@@ -57,7 +57,7 @@
 %c)period (period of comparison)
 
 %% a_precomp
-function a_precomp (common_folder, date_a , period )
+function a_precomp (common_folder, date_a , period, requiredStationsFile )
 
 %listing measurements folder
 listing_meas = dir(strcat(common_folder , '/folder_meas'));
@@ -144,11 +144,11 @@ end
 
 %saving the names of the required stations (fulfilling the requirements)
 %into a .dat file
-datfilepath = strcat(common_folder , '/required_stations.dat');
+requiredStationsFile = strcat(common_folder , '/required_stations.dat');
 empty = {};
-save(datfilepath, 'empty');
+save(requiredStationsFile, 'empty');
 
-fileID = fopen(datfilepath ,'wt');
+fileID = fopen(requiredStationsFile ,'wt');
 for u=1:length(station_no_gaps)
     fprintf(fileID,'%s\n' , station_no_gaps{u});
 end
