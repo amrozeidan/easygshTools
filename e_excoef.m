@@ -16,7 +16,7 @@
 %exist both coefficients for measurements and simulations are extracted.
 
 %%
-function e_excoef(common_folder, basefolder )
+function e_excoef(common_folder, basefolder, period, stationsDBFile, requiredStationsFile )
 %function e_excoef(common_folder, basefolder , main_path , period, k, offset)
 %addpath(main_path)
 
@@ -52,12 +52,12 @@ Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No , 'InputFormat' , 'dd/MM/yyy
 Ttsimul = table2timetable(Ttsimul);
 
 %importing required station names
-filepath_req = strcat(common_folder, '/required_stations.dat');
-req_data = textread( filepath_req , '%s', 'delimiter', '\n')';
+%requiredStationsFile = strcat(common_folder, '/required_stations.dat');
+req_data = textread( requiredStationsFile , '%s', 'delimiter', '\n')';
 
 %importing sattion database
-stationInfo = strcat(common_folder , '/info_all_stationsNoDashes.dat');
-TstationInfo = readtable(stationInfo , 'ReadRowNames' , true);
+%stationsDBFile = strcat(common_folder , '/info_all_stationsNoDashes.dat');
+TstationInfo = readtable(stationsDBFile , 'ReadRowNames' , true);
 
 %intersection of required stations, simulations and measurements:
 stations = intersect(intersect(Ttmeas.Properties.VariableNames , Ttsimul.Properties.VariableNames) , req_data );
