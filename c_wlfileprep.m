@@ -15,12 +15,12 @@
 
 %% c_wlfileprep
 
-function c_wlfileprep (common_folder , basefolder )
+function c_wlfileprep (common_folder , basefolder, requiredStationsFile )
 
 FileName_info = 'info_all_stations.dat';
 PathName_info = strcat(common_folder,'/');
 
-req_data = textread(strcat(common_folder , '/required_stations.dat') , '%s', 'delimiter', '\n');
+req_data = textread(requiredStationsFile , '%s', 'delimiter', '\n');
 
 listing_basefolder = dir(strcat(basefolder, '/telemac_variables'));
 basefolder_file_name = {};
