@@ -15,7 +15,7 @@
 %f) telemac_module (defines which telemac dictionary to be used based on the module)
 
 %% b_extelemac
-function b_extelemac (common_folder , basefolder , slfFile , argument_var_telemac , indate, telemac_module)
+function b_extelemac (common_folder , basefolder , slfFile , argument_var_telemac , telemac_module, stationsDBFile)
 
 % common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
 % basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
@@ -30,18 +30,15 @@ disp('%%starting time:')
 datetime('now')
 %% telemac data extraction --------------------------------------------
 
-FileName_info = 'info_all_stationsNoDashes.dat'; %stations should be arranged in order here
-PathName_info = strcat(common_folder,'/');
+%stationsDBFile = 'info_all_stationsNoDashes.dat'; %stations should be arranged in order here
+%PathName_info = strcat(common_folder,'/');
+%addpath(strcat(common_folder , '/TelemacTools'));
 
-addpath(strcat(common_folder , '/TelemacTools'));
+slfFile
 mFile = telheadr(slfFile)
 variables = mFile.RECV;
 
 t_initial = datetime(mFile.IDATE)
-if isempty(t_initial)
-    t_initial = indate ;
-else
-end
 
 t_initial.Format = 'dd/MM/yyyy HH:mm:ss';
 dt = (mFile.DT)/3600;
@@ -67,7 +64,7 @@ var_req_id = var_req_id' ;
 %extract of coordinates and names of locations/stations from the info
 %text file; to get later data for all te stations, afterwards the
 %required are picked for comparison
-fileID = fopen(strcat(PathName_info,FileName_info),'r');
+fileID = fopen(stationsDBFile,'r');
 info_data = textscan(fileID, '%s%n%n%n%n', 'Delimiter', ',', 'HeaderLines', 1);
 fclose(fileID);
 
@@ -82,7 +79,7 @@ Locations_Names_all = name_all;
 % defining the indices of the locations/stations in the telemac file by
 % taking the min distance when comparing coordinates of telemac and the
 % required locations
-D = pdist2(mFile.XYZ(:,1:2),RW_HW_all);
+D = pdist2replace(mFile.XYZ(:,1:2),RW_HW_all);
 [values, indx]=min(D);
 % saving indices values and station names
 names_and_indices = cell(length(indx) , 2);
@@ -171,21 +168,21 @@ indv = find(ismember(extracted_var , 'velocity_v' ));
 
 if (~isempty(indu) && ~isempty(indv))
     
-    mkdir([basefolder , '/telemac_variables'], 'velocity_uv');
+    mkdir(strcat(basefolder , '/telemac_variables'), 'velocity_uv');
     path_uv = strcat(basefolder, '/telemac_variables/velocity_uv');
     
     mag_all_stations = cell(nSteps , length(Locations_Names_all));
     dir_all_stations = cell(nSteps , length(Locations_Names_all));
     for locn=1:length(Locations_Names_all)
         %read velocity u data
-        file_id_u = fopen([basefolder , '/telemac_variables/velocity_u/' , Locations_Names_all{locn} , '.dat'] ,'r');
+        file_id_u = fopen(strcat(basefolder , '/telemac_variables/velocity_u/' , Locations_Names_all{locn} , '.dat') ,'r');
         u_data = textscan(file_id_u, '%{dd/MM/yyyy HH:mm:ss}D%n', 'Delimiter', ',', 'HeaderLines', 1);
         fclose(file_id_u);
         u_dates = u_data{1,1};
         u_velocity = u_data{1,2};
         
         %read velocity u data
-        file_id_v = fopen([basefolder , '/telemac_variables/velocity_v/' , Locations_Names_all{locn} , '.dat'] ,'r');
+        file_id_v = fopen(strcat(basefolder , '/telemac_variables/velocity_v/' , Locations_Names_all{locn} , '.dat') ,'r');
         v_data = textscan(file_id_v, '%{dd/MM/yyyy HH:mm:ss}D%n', 'Delimiter', ',', 'HeaderLines', 1);
         fclose(file_id_v);
         v_dates = v_data{1,1};
@@ -265,14 +262,14 @@ end
 %assuming that these are the components to focus on
 indh = find(ismember(extracted_var , 'wave_height'));
 indd = find(ismember(extracted_var , 'wave_mean_direction'));
-indm = find(ismember(extracted_var , 'wave_mean_period'));
+indm = find(ismember(extracted_var , 'wave_mean_period_two'));
 indp = find(ismember(extracted_var , 'wave_peak_period'));
 
 if (~isempty(indh) && ~isempty(indd) && ~isempty(indm) && ~isempty(indp))
     
     hlist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_height') , '*.dat'));
     dlist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_mean_direction') , '*.dat'));
-    mlist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_mean_period') , '*.dat'));
+    mlist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_mean_period_two') , '*.dat'));
     plist = dir(fullfile(strcat(basefolder , '/telemac_variables/wave_peak_period') , '*.dat'));
     
     for w=1:length(hlist) %as all folders should contain the same stations
@@ -281,11 +278,6 @@ if (~isempty(indh) && ~isempty(indd) && ~isempty(indm) && ~isempty(indp))
         %read as table
         filepath = strcat(hlist(w).folder , '/' , hlist(w).name) ;
         T1 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
-        try
-            T1.time = datetime (T1.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
-        catch
-            T1.time = datetime (T1.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
-        end
         T1 = table2timetable(T1);
         %create new naming
         stname_table = strcat(stname , {'_swh'});
@@ -294,11 +286,6 @@ if (~isempty(indh) && ~isempty(indd) && ~isempty(indm) && ~isempty(indp))
         %read as table
         filepath = strcat(dlist(w).folder , '/' , dlist(w).name) ;
         T2 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
-        try
-            T2.time = datetime (T2.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
-        catch
-            T2.time = datetime (T2.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
-        end
         T2 = table2timetable(T2);
         %create new naming
         stname_table = strcat(stname , {'_mwd'});
@@ -307,11 +294,6 @@ if (~isempty(indh) && ~isempty(indd) && ~isempty(indm) && ~isempty(indp))
         %read as table
         filepath = strcat(mlist(w).folder , '/' , mlist(w).name) ;
         T3 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
-        try
-            T3.time = datetime (T3.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
-        catch
-            T3.time = datetime (T3.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
-        end
         T3 = table2timetable(T3);
         %create new naming
         stname_table = strcat(stname , {'_mwp'});
@@ -320,11 +302,6 @@ if (~isempty(indh) && ~isempty(indd) && ~isempty(indm) && ~isempty(indp))
         %read as table
         filepath = strcat(plist(w).folder , '/' , plist(w).name) ;
         T4 = readtable(filepath , 'Delimiter' , ',' , 'ReadVariableNames' , true);
-        try
-            T4.time = datetime (T4.time , 'InputFormat' , 'dd.MM.yyyy HH:mm:ss' );
-        catch
-            T4.time = datetime (T4.time , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
-        end
         T4 = table2timetable(T4);
         %create new naming
         stname_table = strcat(stname , {'_pwp'});
