@@ -15,14 +15,14 @@
 %extract the sorted parameters of the simulations only, in case it does not
 %exist both sorted parameters for measurements and simulations are extracted.
 
-function f_ptcomp(common_folder , basefolder)
+function f_ptcomp(common_folder , basefolder, stationsDBFile)
 
 % common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
 % basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
 
 %import station database
-stationInfo = strcat(common_folder , '/info_all_stationsNoDashes.dat');
-TstationInfo = readtable(stationInfo , 'ReadRowNames' , true);
+%stationsDBFile = strcat(common_folder , '/info_all_stationsNoDashes.dat');
+TstationInfo = readtable(stationsDBFile , 'ReadRowNames' , true);
 
 %import tables of A and g for all stations
 T_a_meas = readtable(strcat(common_folder , '/coef_measured/A_meas_all_stations.dat') , 'ReadRowNames' , true);
@@ -57,6 +57,7 @@ for t=1:length(tides)
     simul_A = T_a_simul{tides(t) , :} ;
     simul_g = T_g_simul{tides(t) , :} ;
     
+    axisFontSize = 6;
     %A plots
     h = figure('visible','off');
     ax1 = subplot(2,1,1);
@@ -66,9 +67,12 @@ for t=1:length(tides)
     legend('Measured','Simulated');
     set(gca, 'XTick', 1:length(stations_sorted))
     set(gca,'XtickLabel',stations_sorted)
+    set(gca,'FontSize',axisFontSize);
+    xlim([0 length(stations_sorted)]);
     title(strcat('Amplitude comparison', ' for tide : ', tides{t}));
-    ylabel('Amplitude');
-    %ylim([0 inf]);
+    ylabel('Amplitude [m]');
+    ylim([0 3]);
+    length(stations_sorted)
     
     dff = simul_A - meas_A;
     
@@ -76,10 +80,12 @@ for t=1:length(tides)
     plot(dff, 'kx')
     set(gca, 'XTick', 1:length(stations_sorted))
     set(gca,'XtickLabel',stations_sorted)
+    set(gca,'FontSize',axisFontSize);
+    xlim([0 length(stations_sorted)]);
     title(strcat('Amplitude difference', ' for tide : ', tides{t}));
     xlabel('Stations');
-    ylabel('Amplitude Diffrence');
-    %ylim([-0.3 0.3]);
+    ylabel('Amplitude Difference [m]');
+    ylim([-0.3 0.3]);
     
     linkaxes([ax1 , ax2] , 'x');
     
@@ -108,9 +114,11 @@ for t=1:length(tides)
     legend('Measured','Simulated');
     set(gca, 'XTick', 1:length(stations_sorted))
     set(gca,'XtickLabel',stations_sorted)
-    title(strcat('Phase shift comparison', ' for tide : ', tides{t}));
-    ylabel('Phase shift');
-    %ylim([0 360])
+    set(gca,'FontSize',axisFontSize);
+    xlim([0 length(stations_sorted)]);
+    title(strcat('Phase comparison', ' for tide : ', tides{t}));
+    ylabel('Phase [°]');
+    ylim([0 360])
     
     dff = simul_g - meas_g;
     
@@ -118,9 +126,11 @@ for t=1:length(tides)
     plot(dff, 'kx')
     set(gca, 'XTick', 1:length(stations_sorted))
     set(gca,'XtickLabel',stations_sorted)
+    set(gca,'FontSize',axisFontSize);
+    xlim([0 length(stations_sorted)]);
     xlabel('Stations');
-    ylabel('Phase shift Diffrence');
-    %ylim([-30 30])
+    ylabel('Phase shift [°]');
+    ylim([-30 30])
     
     linkaxes([ax1 , ax2] , 'x');
     
