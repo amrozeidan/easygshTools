@@ -2,7 +2,7 @@
 
 
 %% g_salinitycomp
-function g_salinitycomp (common_folder , basefolder , period, offset )
+function g_salinitycomp (common_folder , basefolder , period, offset, requiredStationsFile)
 
 % common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
 % basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
@@ -32,8 +32,8 @@ Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No , 'InputFormat' , 'dd/MM/yyy
 Ttsimul = table2timetable(Ttsimul);
 
 %importing required station names
-filepath_req = strcat(common_folder, '/required_stations.dat');
-req_data = textread( filepath_req , '%s', 'delimiter', '\n')';
+%requiredStationsFile = strcat(common_folder, '/required_stations.dat');
+req_data = textread( requiredStationsFile , '%s', 'delimiter', '\n')';
 
 %intersection of required stations, simulations and measurements:
 %station names from meas timetable without the depth
