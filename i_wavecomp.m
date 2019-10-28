@@ -2,7 +2,7 @@
 
 
 %% i_wavecomp
-function i_wavecomp (common_folder , basefolder , period, offset )
+function i_wavecomp (common_folder , basefolder , period, offset, requiredStationsFile )
 
 % common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
 % basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
@@ -30,12 +30,12 @@ filepath_simul = strcat(filelist_simul(1).folder , '/' , filelist_simul(1).name)
 Ttsimul = readtable(filepath_simul);
 % Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No , 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
 % Ttsimul = table2timetable(Ttsimul);
-Ttsimul.time = datetime (Ttsimul.time, 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
+Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No, 'InputFormat' , 'dd/MM/yyyy HH:mm:ss' );
 Ttsimul = table2timetable(Ttsimul);
 
 %importing required station names
-filepath_req = strcat(common_folder, '/required_stations.dat');
-req_data = textread( filepath_req , '%s', 'delimiter', '\n')';
+%requiredStationsFile = strcat(common_folder, '/required_stations.dat');
+req_data = textread( requiredStationsFile , '%s', 'delimiter', '\n')';
 %add wave components to required stations names
 add_name = {'_mvd' , '_pwp' , '_mwp' , '_swh' } ;
 req_data_n = cellfun(@(x) strcat(x , add_name) , cellstr(req_data) , 'Uniformoutput', 0) ;
@@ -74,7 +74,7 @@ for cwl=1:length(stations)
     
     %reading simulated data
 %     simul_dates = Ttsimul.TimeStep_No;
-    simul_dates = Ttsimul.time;
+    simul_dates = Ttsimul.TimeStep_No;
     %simul_dates = simul_dates + hours(offset);
     simul_wc = Ttsimul.(stations{cwl});
     
@@ -102,6 +102,11 @@ for cwl=1:length(stations)
         TT_vc_diff_main = synchronize(TT_vc_diff_main , TT_vc_diff);
     end
     
+    %normalized root mean square error
+    rmse = sqrt(sum((ttcomp_noNaN.simul_wc(:)-ttcomp_noNaN.meas_wc(:)).^2)/numel(ttcomp_noNaN.simul_wc))
+    mae = sum((ttcomp_noNaN.simul_wc(:)-ttcomp_noNaN.meas_wc(:))/numel(ttcomp_noNaN.simul_wc))
+
+    
     %subplots of velocity components comparison and difference
     h = figure('visible','off');
     
@@ -109,14 +114,18 @@ for cwl=1:length(stations)
     plot(ttmeas.meas_dates , ttmeas.meas_wc ,'-b');
     hold on
     plot(ttsimul.simul_dates , ttsimul.simul_wc,'-r');
-    hold on
-    plot(ttcomp_noNaN.meas_dates , vc_diff);
+    %hold on
+    %plot(ttcomp_noNaN.meas_dates , vc_diff);
     title(strcat( component_plot{:} , ' comparison,', ' Station : ', station_plot ));
-    legend('Measurements','Simulations','Differences');
-    lgd.NumColumns = 3;
+    legend('Measurements','Simulations');
+    lgd.NumColumns = 2;
     ylabel(component_plot{:});
     set(gca,'FontSize',6)
-    %ylim([-5 5])
+    componentPlot = component_plot{:}
+    if string(componentPlot) == string('Wave height')
+        ylim([0 10])
+        annotation('textbox', [0.2, 0.1, 0.1, 0.1], 'String', "MAE = "+ string(mae)+ " RMSE = "+ string(rmse));
+    end
     
     ax2 = subplot(2,1,2);
     plot(ttcomp_noNaN.meas_dates, vc_diff);
@@ -124,7 +133,9 @@ for cwl=1:length(stations)
     xlabel('Date/Time');
     ylabel(strcat(component_plot{:} , ' Difference'));
     set(gca,'FontSize',6)
-    %ylim([-0.75 0.75])
+    if string(componentPlot) == string('Wave height')
+        ylim([-2 2])
+    end
     
     if ~isempty(ttcomp_noNaN.meas_dates)
         linkaxes([ax1 , ax2] , 'x');
@@ -145,7 +156,6 @@ for cwl=1:length(stations)
     saveas(gca, save_name , 'jpeg');
     clf
     close(h)
-    
     
     
 end
