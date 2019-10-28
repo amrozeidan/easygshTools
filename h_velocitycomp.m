@@ -2,12 +2,16 @@
 
 
 %% h_velocitycomp
-function h_velocitycomp (common_folder , basefolder , period, offset )
+% function h_velocitycomp (common_folder , basefolder , period, offset, requiredStationsFile )
 
 % common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
 % basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
 % period = timerange('2006-01-01' , '2006-01-31') ;
 
+common_folder = 'C:\Users\DEAZEID1\Downloads\HIWI\testing\com' ;
+basefolder = 'C:\Users\DEAZEID1\Downloads\HIWI\testing\base';
+period = timerange('2015-01-01' , '2015-01-08') ;
+requiredStationsFile = 'C:\Users\DEAZEID1\Downloads\HIWI\testing\required_stations.dat';
 
 %importing measurements and simulations tables
 %measurements timetable:
@@ -36,8 +40,8 @@ Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No , 'InputFormat' , 'dd/MM/yyy
 Ttsimul = table2timetable(Ttsimul);
 
 %importing required station names
-filepath_req = strcat(common_folder, '/required_stations.dat');
-req_data = textread( filepath_req , '%s', 'delimiter', '\n')';
+%requiredStationsFile = strcat(common_folder, '/required_stations.dat');
+req_data = textread( requiredStationsFile , '%s', 'delimiter', '\n')';
 %add velocity components to required stations names
 add_name = {'_magn' , '_dirc' } ;
 req_data_n = cellfun(@(x) strcat(x , add_name) , cellstr(req_data) , 'Uniformoutput', 0) ;
@@ -78,12 +82,13 @@ for cwl=1:length(stations)
         %reading measurements data
         meas_dates = Ttmeas.Time;
         meas_vc = Ttmeas.(fullname_meas);
+
         
         %reading simulated data
         simul_dates = Ttsimul.TimeStep_No;
         %simul_dates = simul_dates + hours(offset);
         simul_vc = Ttsimul.(stations{cwl});
-        
+
         %constructing timetables
         ttmeas = timetable(meas_dates , meas_vc);
         ttsimul = timetable(simul_dates , simul_vc);
@@ -99,13 +104,72 @@ for cwl=1:length(stations)
         ttcomp_noNaN = rmmissing(tt);
         
         %magnitude/direction difference
-        vc_diff = ttcomp_noNaN.simul_vc - ttcomp_noNaN.meas_vc ;
+        ttcomp_noNaN.simul_vc
+        %if string(component_plot{:}) == "Velocity Direction"
+        %    ttcomp_noNaN.simul_vc = - ttcomp_noNaN.simul_vc + 90
+        %    ttcomp_noNaN.simul_vc (ttcomp_noNaN.simul_vc<0) = ttcomp_noNaN.simul_vc(ttcomp_noNaN.simul_vc<0)+360
+        %end
+        if component == 'dirc'
+            %copy read data
+            ttcomp_noNaN.simul_vc_math = ttcomp_noNaN.simul_vc;
+            ttcomp_noNaN.meas_vc_naut = ttcomp_noNaN.meas_vc;
+            %transform to missing direction definition
+            ttcomp_noNaN.meas_vc_math = -ttcomp_noNaN.meas_vc_naut + 90;
+            ttcomp_noNaN.meas_vc_math(ttcomp_noNaN.meas_vc_math <=0) = ttcomp_noNaN.meas_vc_math (ttcomp_noNaN.meas_vc_math <=0) + 360;
+            ttcomp_noNaN.meas_vc_naut(ttcomp_noNaN.meas_vc_naut <=0) = ttcomp_noNaN.meas_vc_naut (ttcomp_noNaN.meas_vc_naut <=0) + 360;
+            ttcomp_noNaN.simul_vc_math (ttcomp_noNaN.simul_vc_math <= 0) = ttcomp_noNaN.simul_vc_math (ttcomp_noNaN.simul_vc_math <= 0) + 360;
+            ttcomp_noNaN.simul_vc_math_intermed = ttcomp_noNaN.simul_vc_math;
+            ttcomp_noNaN.simul_vc_math_intermed (ttcomp_noNaN.simul_vc_math_intermed <=180) = ttcomp_noNaN.simul_vc_math_intermed (ttcomp_noNaN.simul_vc_math_intermed <= 180) +360;
+            ttcomp_noNaN.meas_vc_math_intermed = ttcomp_noNaN.meas_vc_math;
+            ttcomp_noNaN.meas_vc_math_intermed (ttcomp_noNaN.meas_vc_math_intermed <=180) = ttcomp_noNaN.meas_vc_math_intermed (ttcomp_noNaN.meas_vc_math_intermed <= 180) +360;
+            ttcomp_noNaN.simul_vc_naut = -ttcomp_noNaN.simul_vc_math + 90;
+            ttcomp_noNaN.simul_vc_naut (ttcomp_noNaN.simul_vc_naut <= 0) = ttcomp_noNaN.simul_vc_naut (ttcomp_noNaN.simul_vc_naut <= 0) + 360;
+            
+            A = ttcomp_noNaN.simul_vc_math(:) - ttcomp_noNaN.meas_vc_math(:);
+            B = ttcomp_noNaN.simul_vc_naut(:) - ttcomp_noNaN.meas_vc_naut(:);
+            C = ttcomp_noNaN.simul_vc_math_intermed(:) - ttcomp_noNaN.meas_vc_math_intermed(:);
+            ABC = cat (3,A,B,C);
+            [~,idx] = min(abs(ABC),[],3);
+            vc_diff = A.*(idx==1) +  B.*(idx==2) + C.*(idx==3);
+
+%             ttcomp_noNaN.meas_vc = ttcomp_noNaN.meas_vc_math;
+%             ttcomp_noNaN.simul_vc = ttcomp_noNaN.simul_vc_math;
+            ttcomp_noNaN.meas_vc = ttcomp_noNaN.meas_vc_naut;
+            ttcomp_noNaN.simul_vc = ttcomp_noNaN.simul_vc_naut;
+            
+            ttcomp_noNaN.meas_vc_naut = [];
+            ttcomp_noNaN.meas_vc_math = [];
+            ttcomp_noNaN.simul_vc_naut = [];
+            ttcomp_noNaN.simul_vc_math = [];
+            
+            %displaying mathemtical units
+%             ttmeas.meas_vc = -ttmeas.meas_vc + 90
+%             ttmeas.meas_vc(ttmeas.meas_vc <= 0) = ttmeas.meas_vc(ttmeas.meas_vc <= 0) + 360;
+            %displaying nautical units
+            ttsimul.simul_vc = -ttsimul.simul_vc + 90;
+            ttsimul.simul_vc(ttsimul.simul_vc <= 0) = ttsimul.simul_vc(ttsimul.simul_vc <= 0) + 360;
+            
+        else
+            vc_diff = ttcomp_noNaN.simul_vc - ttcomp_noNaN.meas_vc ;
+        end
+        
         TT_vc_diff = timetable(ttcomp_noNaN.meas_dates , vc_diff );
         %salinity difference main table containing all stations
         if cwl ==1
             TT_vc_diff_main = TT_vc_diff;
         else
             TT_vc_diff_main = synchronize(TT_vc_diff_main , TT_vc_diff);
+        end
+        
+        %normalized root mean square error
+        rmse = sqrt(sum((vc_diff(:)).^2)/numel(ttcomp_noNaN.simul_vc));
+        me = sum((vc_diff(:))/numel(ttcomp_noNaN.simul_vc));
+        mae = sum(abs((vc_diff(:)))/numel(ttcomp_noNaN.simul_vc));
+        
+        if component == 'dirc'
+            unit = '[°] (naut)';
+        else
+            unit = '[m/s]';
         end
         
         %subplots of velocity components comparison and difference
@@ -116,21 +180,38 @@ for cwl=1:length(stations)
         hold on
         plot(ttsimul.simul_dates , ttsimul.simul_vc,'-r');
         hold on
-        plot(ttcomp_noNaN.meas_dates , vc_diff);
-        title(strcat( component_plot{:} , ' comparison,', ' Station : ', station_plot , ', depth=' , depth));
-        legend('Measurements','Simulations','Differences');
-        lgd.NumColumns = 3;
+        %plot(ttcomp_noNaN.meas_dates , vc_diff);
+        title(strcat( strcat(component_plot{:}, ' ', unit) , ' comparison,', ' Station : ', station_plot , ', depth=' , depth));
+        legend('Measurements','Simulations');
+        lgd.NumColumns = 2;
         ylabel(component_plot{:});
         set(gca,'FontSize',6)
-        %ylim([-5 5])
+        if component == 'dirc'
+            ylim([0 360]);
+            yticks(0:60:360);
+        else
+            ylim([0 2.5]);
+            yticks(0:0.5:2.5);
+        end
+
         
         ax2 = subplot(2,1,2);
         plot(ttcomp_noNaN.meas_dates, vc_diff);
         title(strcat(component_plot{:} , ' difference,', ' Station : ',  station_plot , ', depth=' , depth));
-        xlabel('Date/Time');
-        ylabel(strcat(component_plot{:} , ' Difference'));
+        xlabel('Date [UTC]');
+        ylabel(strcat(component_plot{:} , ' Difference', unit));
         set(gca,'FontSize',6)
-        %ylim([-0.75 0.75])
+        if component == 'dirc'
+            ylim([-180 180]);
+            yticks(-180:60:180);
+        else
+            ylim([-1.0 1.0]);
+            yticks(-1:0.2:1);
+        end
+        xi = 0.85;
+        eta = 0.15;
+        text(xi,eta,sprintf('RMSE=%6.3f\n MAE=%6.3f\n  ME=%6.3f\nje in %s',rmse,mae,me,unit),'Units','normalized','FontSize',6,'HorizontalAlignment','left');
+        %ylim([-5 5])
         
         if ~isempty(ttcomp_noNaN.meas_dates)
             linkaxes([ax1 , ax2] , 'x');
