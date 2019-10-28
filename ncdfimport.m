@@ -1,21 +1,21 @@
 
-function ncdfimport(common_folder)
+function ncdfimport(yearValidationFolder, yearMeasFolder, common_folder)
 
 %common_folder = '/Users/amrozeidan/Desktop/EasyGSH/com2305_ncdfrev03';
 
 
-stationSL =  strcat(common_folder , '/LongShortinfoNoDashes.dat');
-stationInfo = strcat(common_folder , '/info_all_stationsNoDashes.dat');
+stationSL =  strcat(common_folder , '/LongShortInfo.dat');
+stationInfo = strcat(common_folder , '/info_all_stations.dat');
 TstationSL = readtable(stationSL);
 TstationSL.Properties.RowNames = TstationSL.kuerzel ;
 TstationInfo = readtable(stationInfo , 'ReadRowNames' , true);
 
 
-ncdflist = dir(fullfile(strcat(common_folder , '/measurements') , '*.nc'));
+ncdflist = dir(fullfile(yearMeasFolder , '*.nc'));
 
 %output directory
-mkdir(common_folder, 'measurements_prepared');
-path_1 = strcat(common_folder, '/measurements_prepared');
+mkdir(yearValidationFolder, 'prepared_data_ncdf');
+path_1 = strcat(yearValidationFolder, '/prepared_data_ncdf');
 
 for u=1:length(ncdflist)
     
