@@ -1,11 +1,12 @@
 
-function e2_getPeaks(common_folder , basefolder)
+function e2_getPeaks(common_folder , basefolder, stationsDBFile)
 
-% common_folder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/com';
-% basefolder = '/Users/amrozeidan/Desktop/EasyGSH/functiontesting/res';
+% common_folder = '/Users/amrozeidan/Downloads/EAZYgsh tools/testing_for_nico/com';
+% basefolder = '/Users/amrozeidan/Downloads/EAZYgsh tools/testing_for_nico/base';
+% stationsDBFile = '/Users/amrozeidan/Downloads/EAZYgsh tools/EasyGSH_az/3_functions_revGIT_matlab/info_all_stations.dat';
 
 %add UtTools
-addpath(strcat(common_folder , '/UtTools'))
+addpath('UtTools')
 
 %import pTides
 p = importPTides('pTides.dat');
@@ -33,8 +34,7 @@ Ttsimul.TimeStep_No = datetime (Ttsimul.TimeStep_No , 'InputFormat' , 'dd/MM/yyy
 Ttsimul = table2timetable(Ttsimul);
 
 %read sations database file
-stationInfo = strcat(common_folder , '/info_all_stationsNoDashes.dat');
-TstationInfo = readtable(stationInfo , 'ReadRowNames' , true);
+TstationInfo = readtable(stationsDBFile , 'ReadRowNames' , true);
 
 %check available extracted coefficients
 try
